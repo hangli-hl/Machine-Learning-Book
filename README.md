@@ -2,7 +2,7 @@
 
 # English Version
 
-Some content of my upcoming book, Machine Learning Methods (Third Edition).
+Some content of my book, Machine Learning Methods (previously Statistical Learning Methods).
 
 I am currently working on the third edition of Machine Learning Methods in both Chinese and English. I plan to publish it in the next 2-3 years.
 
@@ -29,7 +29,7 @@ Li, Hang. Machine Learning Methods (2nd ed.). Translated by Lu Lin and Huanqiang
 
 # 中文版本
 
-这是未来出版的书籍《机器学习方法（第三版）》的相关内容。
+这是我的著书《机器学习方法》的相关内容。
 
 正在进行《机器学习方法》第三版的写作，计划3年后推出中文版和英文版。
 
