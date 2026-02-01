@@ -29,7 +29,7 @@ Li, Hang. Machine Learning Methods (2nd ed.). Translated by Lu Lin and Huanqiang
 
 # 中文版本
 
-这是我的著书《机器学习方法》的相关内容。
+这是我的著书《机器学习方法》（《统计学习方法》）的相关内容。
 
 正在进行《机器学习方法》第三版的写作，计划3年后推出中文版和英文版。
 
