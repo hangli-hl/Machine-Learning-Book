@@ -4,7 +4,7 @@
 
 Some content of my book, Machine Learning Methods (previously Statistical Learning Methods).
 
-I am currently working on the third edition of Machine Learning Methods in both Chinese and English. I plan to publish it in the next 2-3 years.
+I am currently working on the third edition of Machine Learning Methods in both Chinese and English. The plan is to publish it in the next 2-3 years.
 
 This repository contains some materials of the book, such as the table of contents, sample chapters, and explanatory notes.
 
