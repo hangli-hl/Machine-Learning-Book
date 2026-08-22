@@ -2,9 +2,9 @@
 
 # Codes
 
-This directory contains code implementations for the algorithms described in *Machine Learning Methods*. The codebase is currently under development; the first batch of implementations will be released shortly.
+This directory contains code implementations for the algorithms described in *Machine Learning Methods (Third Edition)*. The codebase is currently under development; the first batch of implementations will be released shortly.
 
-本目录包含《机器学习方法》中算法的代码实现。代码库正在开发中，第一批代码将在近期发布。
+本目录包含《机器学习方法 第三版版》中算法的代码实现。代码库正在开发中，第一批代码将在近期发布。
 
 ## Contents
 
