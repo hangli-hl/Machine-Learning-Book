@@ -12,7 +12,7 @@ This directory contains the documentation materials for *Machine Learning Method
 
 - [Table of Contents](./Table_of_Contents/) - 书籍目录
 - [Sample Chapters](./Sample_Chapters/) - 样章目录
-- 内容说明
+- 第三版内容说明
 - 第二版勘误表
 
 ## Table of Contents (Third Edition)

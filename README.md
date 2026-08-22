@@ -1,6 +1,6 @@
 # Machine-Learning-Book
 
-# English Version
+# English
 
 Open source content of my book, Machine Learning Methods (previously Statistical Learning Methods).
 
@@ -24,7 +24,7 @@ Machine-Learning-Book/
 └── LICENSE
 ```
 
-## Publication History
+## Publication History of the Book
 
 Chinese Editions:
 
@@ -42,7 +42,7 @@ Li, Hang. Machine Learning Methods (1st ed.). Translated by Lu Lin and Huanqiang
 
 Li, Hang. Machine Learning Methods (2nd ed.). Translated by Lu Lin and Huanqiang Zeng. Springer, 2026.
 
-# 中文版本
+# 中文
 
 这是我的著书《机器学习方法》（《统计学习方法》）的开源内容。
 
@@ -66,7 +66,7 @@ Machine-Learning-Book/
 └── LICENSE
 ```
 
-## 出版历史
+## 本书出版历史
 
 中文版：
 

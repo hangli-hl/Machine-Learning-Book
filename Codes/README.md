@@ -2,9 +2,9 @@
 
 # Codes
 
-This directory contains code implementations for the algorithms described in *Machine Learning Methods*. It is still under development. Some codes will be released shortly.
+This directory contains code implementations for the algorithms described in *Machine Learning Methods*. The codebase is currently under development — the first batch of implementations will be released shortly.
 
-本目录包含《机器学习方法》中算法的代码实现。代码开发中，近期将公开一部分。
+本目录包含《机器学习方法》中算法的代码实现。代码库正在开发中，第一批代码即将发布。
 
 ## Contents
 
@@ -58,5 +58,3 @@ This directory contains code implementations for the algorithms described in *Ma
 - Deep Q-Networks (DQN)
 - Policy-Based Methods (REINFORCE)
 - Proximal Policy Optimization (PPO)
-
----
