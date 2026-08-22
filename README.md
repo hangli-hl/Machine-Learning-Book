@@ -1,4 +1,4 @@
-# Machine-Learning-Methods
+# Machine Learning Methods (Third Edition)
 
 # English
 
