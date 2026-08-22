@@ -1,14 +1,31 @@
+---
 # Machine-Learning-Book
 
 # English Version
 
-Some content of my book, Machine Learning Methods (previously Statistical Learning Methods).
+Open source content of my book, Machine Learning Methods (previously Statistical Learning Methods).
 
-I am currently working on the third edition of Machine Learning Methods in both Chinese and English. The plan is to publish it in the next 3 years.
+I am currently working on the third edition of Machine Learning Methods in both Chinese and English. The plan is to publish it in 2030.
 
-This repository contains some materials of the book, such as the table of contents, sample chapters, and explanatory notes.
+This repository contains codes and documents of the book, including implementation of algorithms in Python, the table of contents, sample chapters, and explanatory notes.
 
-Publication history of my works on this subject:
+## Repository Structure
+
+```
+Machine-Learning-Book/
+├── Codes/
+│   ├── Supervised_Learning/
+│   ├── Unsupervised_Learning/
+│   ├── Deep_Learning/
+│   └── Reinforcement_Learning/
+├── Docs/
+│   ├── Table_of_Contents/
+│   └── Sample_Chapters/
+├── README.md
+└── LICENSE
+```
+
+## Publication History
 
 Chinese Editions:
 
@@ -26,16 +43,31 @@ Li, Hang. Machine Learning Methods (1st ed.). Translated by Lu Lin and Huanqiang
 
 Li, Hang. Machine Learning Methods (2nd ed.). Translated by Lu Lin and Huanqiang Zeng. Springer, 2026.
 
-
 # 中文版本
 
-这是我的著书《机器学习方法》（《统计学习方法》）的相关内容。
+这是我的著书《机器学习方法》（《统计学习方法》）的开源内容。
 
-正在进行《机器学习方法》第三版的写作，计划3年后推出中文版和英文版。
+正在进行《机器学习方法》第三版的写作，计划2030年出版中文版和英文版。
 
-本资源库包含与该书相关的资料，例如目录、样章、说明。
+本资源库包含与该书相关的代码和文档，包括算法实现Python代码、目录、样章、说明。
 
-本书相关的出版历史：
+## 资源库结构
+
+```
+Machine-Learning-Book/
+├── Codes/
+│   ├── Supervised_Learning/
+│   ├── Unsupervised_Learning/
+│   ├── Deep_Learning/
+│   └── Reinforcement_Learning/
+├── Docs/
+│   ├── Table_of_Contents/
+│   └── Sample_Chapters/
+├── README.md
+└── LICENSE
+```
+
+## 出版历史
 
 中文版：
 
@@ -52,3 +84,5 @@ Li, Hang. Machine Learning Methods (2nd ed.). Translated by Lu Lin and Huanqiang
 Li, Hang. Machine Learning Methods (1st ed.). Translated by Lu Lin and Huanqiang Zeng. Springer, 2024.
 
 Li, Hang. Machine Learning Methods (2nd ed.). Translated by Lu Lin and Huanqiang Zeng. Springer, 2026.
+
+---
