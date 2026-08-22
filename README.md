@@ -1,4 +1,4 @@
-# Machine-Learning-Book
+# Machine-Learning-Methods
 
 # English
 
