@@ -8,10 +8,10 @@ This directory contains code implementations for the algorithms described in *Ma
 
 ## Contents
 
-- [Supervised Learning](./Supervised_Learning) - 监督学习
-- [Unsupervised Learning](./Unsupervised_Learning) - 无监督学习
-- [Deep Learning](./Deep_Learning/) - 深度学习
-- [Reinforcement Learning](./Reinforcement_Learning/) - 强化学习
+- Supervised Learning - 监督学习
+- Unsupervised Learning - 无监督学习
+- Deep Learning - 深度学习
+- Reinforcement Learning - 强化学习
 
 ## Machine Learning Methods
 
