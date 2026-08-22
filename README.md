@@ -1,4 +1,3 @@
----
 # Machine-Learning-Book
 
 # English Version
@@ -84,5 +83,3 @@ Machine-Learning-Book/
 Li, Hang. Machine Learning Methods (1st ed.). Translated by Lu Lin and Huanqiang Zeng. Springer, 2024.
 
 Li, Hang. Machine Learning Methods (2nd ed.). Translated by Lu Lin and Huanqiang Zeng. Springer, 2026.
-
----
