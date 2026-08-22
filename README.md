@@ -4,7 +4,7 @@
 
 This repository contains the open-source content of my book, *Machine Learning Methods* (formerly *Statistical Learning Methods*).
 
-I am currently working on the third edition of *Machine Learning Methods* in both Chinese and English, with plans to publish it in 2030.
+I am currently working on the third edition of *Machine Learning Methods* in both Chinese and English, with a plan to publish it in 2030.
 
 This repository contains code and documentation for the book, including Python implementations of the algorithms, the table of contents, sample chapters, and explanatory notes.
 

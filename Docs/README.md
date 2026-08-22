@@ -4,9 +4,9 @@
 
 # Docs
 
-This directory contains the documentation materials for *Machine Learning Methods*, including the table of contents, sample chapters, and explanatory notes.
+This directory contains the documents for *Machine Learning Methods (Third Editin)*, including the table of contents, sample chapters, and explanatory notes.
 
-本目录包含《机器学习方法》的文档资料，包括目录、样章和说明。
+本目录包含《机器学习方法 第三版》的文档资料，包括目录、样章和说明。
 
 ## Contents
 
