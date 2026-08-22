@@ -2,11 +2,11 @@
 
 # English
 
-Open source content of my book, Machine Learning Methods (previously Statistical Learning Methods).
+This repository contains the open-source content of my book, *Machine Learning Methods* (formerly *Statistical Learning Methods*).
 
-I am currently working on the third edition of Machine Learning Methods in both Chinese and English. The plan is to publish it in 2030.
+I am currently working on the third edition of *Machine Learning Methods* in both Chinese and English, with plans to publish it in 2030.
 
-This repository contains codes and documents of the book, including implementation of algorithms in Python, the table of contents, sample chapters, and explanatory notes.
+This repository contains code and documentation for the book, including Python implementations of the algorithms, the table of contents, sample chapters, and explanatory notes.
 
 ## Repository Structure
 
@@ -44,11 +44,11 @@ Li, Hang. Machine Learning Methods (2nd ed.). Translated by Lu Lin and Huanqiang
 
 # 中文
 
-这是我的著书《机器学习方法》（《统计学习方法》）的开源内容。
+这是我的著书《机器学习方法》（原名《统计学习方法》）的开源内容。
 
-正在进行《机器学习方法》第三版的写作，计划2030年出版中文版和英文版。
+我正在撰写《机器学习方法》第三版的中文版和英文版，计划于2030年出版。
 
-本资源库包含与该书相关的代码和文档，包括算法实现Python代码、目录、样章、说明。
+本资源库包含该书的代码和文档，包括算法的Python实现、目录、样章和说明。
 
 ## 资源库结构
 
