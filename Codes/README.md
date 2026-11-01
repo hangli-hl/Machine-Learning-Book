@@ -6,7 +6,7 @@ This directory contains code implementations of the algorithms in the book *Mach
 
 > **Disclaimer:** This code repository was completed by the author with the assistance of AI. The author devoted considerable effort to algorithm implementation design, standardization, and readability optimization.
 >
-> **声明：** 本代码库由作者在 AI 辅助下完成。作者投入大量精力进行算法实现设计、统一规范化以及易读性优化。
+> **声明：** 本代码库由作者在 AI 辅助下完成。作者投入了大量精力进行算法实现设计、统一规范化以及易读性优化。
 >
 
 ## Contents 目录
