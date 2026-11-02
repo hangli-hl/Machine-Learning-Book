@@ -13,8 +13,10 @@ from sklearn.metrics import adjusted_rand_score
 import data_creators as dc
 import plot_functions as pf
 
-# Small positive number to avoid division by zero or log(0)
+# Total responsibility below this value counts as "component has no samples"
 EPS = 1e-6
+# Small positive number to avoid singular covariance matrices
+REG_COVAR = 1e-6
 
 
 ##############################################################################
@@ -49,9 +51,6 @@ class GaussianMixtureEM:
 
     Attributes:
         num_components: number of Gaussian components, a positive integer
-        num_iterations: maximum number of EM iterations, a positive integer
-        convergence_threshold: training stops when the change of the log-likelihood
-            per sample drops to this value or below, a positive float
         num_features: number of features, a positive integer
         coefficients: mixing coefficients, shape (num_components,)
         means: component means, shape (num_components, num_features)
@@ -61,8 +60,11 @@ class GaussianMixtureEM:
             final parameters, shape (num_training_samples, num_components)
         assignments: component assignments of the training samples under the final
             parameters, shape (num_training_samples,)
+        num_iterations: maximum number of EM iterations, a positive integer
+        convergence_threshold: training stops when the change of the log-likelihood
+            per sample drops to this value or below, a positive float
         log_likelihood_history: log-likelihood per recorded snapshot, list of floats
-        parameter_history: flattened parameters (means, covariances, coefficients)
+        parameter_history: flattened parameters (coefficients, means, covariances)
             per recorded snapshot, list of 1D arrays. Entry t holds the parameters
             that produced log_likelihood_history[t], so position and color cannot
             drift apart in the trajectory plot.
@@ -135,9 +137,9 @@ class GaussianMixtureEM:
             num_samples, self.num_components, replace=False
         )
         self.num_features = num_features
+        self.coefficients = np.full(self.num_components, 1 / self.num_components)
         self.means = samples[initial_indices]
         self.covariances = np.tile(np.eye(num_features), (self.num_components, 1, 1))
-        self.coefficients = np.full(self.num_components, 1 / self.num_components)
         self.responsibilities = None
         self.assignments = None
         self.log_likelihood_history = []
@@ -157,9 +159,9 @@ class GaussianMixtureEM:
         self.parameter_history.append(
             np.concatenate(
                 [
+                    self.coefficients.flatten(),
                     self.means.flatten(),
                     self.covariances.flatten(),
-                    self.coefficients.flatten(),
                 ]
             )
         )
@@ -235,10 +237,10 @@ class GaussianMixtureEM:
                 shape (num_samples, num_components)
             log_likelihood: log-likelihood under the current parameters, a float
         """
-        log_weighted = self.forward(samples)
-        log_total = logsumexp(log_weighted, axis=1, keepdims=True)
+        log_weighted_densities = self._compute_log_weighted_densities(samples)
+        log_total = logsumexp(log_weighted_densities, axis=1, keepdims=True)
 
-        responsibilities = np.exp(log_weighted - log_total)
+        responsibilities = np.exp(log_weighted_densities - log_total)
         log_likelihood = float(np.sum(log_total))
 
         return responsibilities, log_likelihood
@@ -251,6 +253,7 @@ class GaussianMixtureEM:
             π_j = (1/N) * Σ_{i=1}^N r_ij
             μ_j = (Σ_{i=1}^N r_ij * x_i) / (Σ_{i=1}^N r_ij)
             Σ_j = (Σ_{i=1}^N r_ij * (x_i - μ_j)(x_i - μ_j)^T) / (Σ_{i=1}^N r_ij)
+                + REG_COVAR·I
 
         A component that lost all responsibility keeps its previous means and
         covariances. Its coefficient is still updated to reflect that it is no
@@ -277,6 +280,7 @@ class GaussianMixtureEM:
             self.covariances[j] = (weighted_deviations.T @ deviations) / (
                 total_responsibilities[j]
             )
+            self.covariances[j] += REG_COVAR * np.eye(self.num_features)
 
     # ------------------------------------------------------------------
     # Prediction
@@ -297,12 +301,11 @@ class GaussianMixtureEM:
         """
         # The posterior is the weighted density divided by a per-sample constant,
         # so both have the same argmax
-        return np.argmax(self.forward(samples), axis=1)
+        return np.argmax(self._compute_log_weighted_densities(samples), axis=1)
 
-    def forward(self, samples):
+    def _compute_log_weighted_densities(self, samples):
         """
-        Forward pass: compute the log weighted densities of samples under all
-        components.
+        Compute the log weighted densities of samples under all components.
 
             log( π_j * N(x_i | μ_j, Σ_j) ) = log(π_j) + log(N(x_i | μ_j, Σ_j))
 
@@ -310,22 +313,20 @@ class GaussianMixtureEM:
             samples: input samples, shape (num_samples, num_features)
 
         Returns:
-            log_weighted: log_weighted[i, j] = log( π_j * N(x_i | μ_j, Σ_j) ),
+            log_weighted_densities: log_weighted[i, j] = log( π_j * N(x_i | μ_j, Σ_j) ),
                 shape (num_samples, num_components)
         """
-        samples = np.asarray(samples, dtype=float)
-        log_weighted = np.zeros((samples.shape[0], self.num_components))
+        log_weighted_densities = np.zeros((samples.shape[0], self.num_components))
 
+        with np.errstate(divide="ignore"):
+            log_coefficients = np.log(self.coefficients)
         for j in range(self.num_components):
             log_density = multivariate_normal.logpdf(
-                samples,
-                mean=self.means[j],
-                cov=self.covariances[j],
-                allow_singular=True,
+                samples, mean=self.means[j], cov=self.covariances[j]
             )
-            log_weighted[:, j] = np.log(max(self.coefficients[j], EPS)) + log_density
+            log_weighted_densities[:, j] = log_coefficients[j] + log_density
 
-        return log_weighted
+        return log_weighted_densities
 
 
 ##############################################################################
