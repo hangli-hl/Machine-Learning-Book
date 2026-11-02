@@ -37,13 +37,13 @@ class KMeansClustering:
 
     Attributes:
         num_clusters: number of clusters, a positive integer
-        num_iterations: maximum number of iterations, a positive integer
-        convergence_threshold: training stops when the Frobenius norm of the
-            centroid update drops to this value or below, a positive float
         num_features: number of features, a positive integer
         centroids: shape (num_clusters, num_features)
         assignments: cluster assignment of the training samples under the final
             centroids, shape (num_training_samples,)
+        num_iterations: maximum number of iterations, a positive integer
+        convergence_threshold: training stops when the squared Frobenius norm of the
+            centroid update drops to this value or below, a positive float
         sse_history: SSE per recorded snapshot, list of floats
         parameter_history: flattened centroids per recorded snapshot, list of arrays of
             shape (num_clusters * num_features,). Entry t holds the centroids that
@@ -63,6 +63,7 @@ class KMeansClustering:
         self.num_clusters = int(num_clusters)
         self.num_iterations = int(num_iterations)
         self.convergence_threshold = float(convergence_threshold)
+
         self.num_features = None
         self.centroids = None
         self.assignments = None
@@ -116,20 +117,6 @@ class KMeansClustering:
         self.sse_history = []
         self.parameter_history = []
 
-    def _compute_sse(self, samples, assignments):
-        """
-        Compute the K-Means objective (SSE, sum of squared errors) under the
-        current centroids.
-
-        Args:
-            samples: input samples, shape (num_samples, num_features)
-            assignments: cluster assignments, shape (num_samples,)
-
-        Returns:
-            sse: sum of squared errors, a float
-        """
-        return float(np.sum((samples - self.centroids[assignments]) ** 2))
-
     def _record_parameters(self, samples, assignments):
         """
         Append the current centroids and their SSE to the two histories.
@@ -146,6 +133,38 @@ class KMeansClustering:
         self.parameter_history.append(self.centroids.flatten())
         self.sse_history.append(self._compute_sse(samples, assignments))
 
+    @staticmethod
+    def _compute_squared_distances(samples, targets):
+        """
+        Compute the squared Euclidean distance between samples and targets.
+
+        Args:
+            samples: shape (num_samples, num_features)
+            targets: either one target per sample, shape (num_samples, num_features),
+                or a single point shared by all samples, shape (num_features,)
+
+        Returns:
+            squared_distances: shape (num_samples,)
+        """
+        return np.sum((samples - targets) ** 2, axis=1)
+
+    def _compute_sse(self, samples, assignments):
+        """
+        Compute the K-Means objective (SSE, sum of squared errors) under the
+        current centroids.
+
+        Args:
+            samples: input samples, shape (num_samples, num_features)
+            assignments: cluster assignments, shape (num_samples,)
+
+        Returns:
+            sse: sum of squared errors, a float
+        """
+        squared_errors = self._compute_squared_distances(
+            samples, self.centroids[assignments]
+        )
+        return float(np.sum(squared_errors))
+
     def _rank_samples_by_errors(self, samples, assignments):
         """
         Rank the samples by their squared distance to their own centroid,
@@ -159,15 +178,16 @@ class KMeansClustering:
             order: sample indices sorted by descending squared error,
                 shape (num_samples,)
         """
-        squared_errors = np.sum((samples - self.centroids[assignments]) ** 2, axis=1)
+        squared_errors = self._compute_squared_distances(
+            samples, self.centroids[assignments]
+        )
         return np.argsort(
             -squared_errors, kind="stable"
         )  # stable to preserve original order
 
-    @staticmethod
-    def _compute_centroid_shift(old_centroids, new_centroids):
+    def _compute_squared_centroid_shift(self, old_centroids, new_centroids):
         """
-        Compute the Frobenius norm of the centroid update.
+        Compute the squared Frobenius norm of the centroid update.
 
         Args:
             old_centroids: centroids before the update,
@@ -176,9 +196,11 @@ class KMeansClustering:
                 shape (num_clusters, num_features)
 
         Returns:
-            shift: Frobenius norm of the difference, a float
+            shift: sum over clusters of ||new_j - old_j||^2, a float
         """
-        return float(np.linalg.norm(new_centroids - old_centroids))
+        return float(
+            np.sum(self._compute_squared_distances(old_centroids, new_centroids))
+        )
 
     # ------------------------------------------------------------------
     # Training
@@ -194,9 +216,9 @@ class KMeansClustering:
         each update.
 
         Training stops when it reaches the specified number of iterations or when
-        the Frobenius norm of the centroid update drops to the convergence threshold
-        or below. The final centroids and their SSE are recorded at the end, so
-        len(sse_history) = number of iterations performed + 1.
+        the squared Frobenius norm of the centroid update drops to the
+        convergence threshold or below. The final centroids and their SSE are recorded
+        at the end, so len(sse_history) = number of iterations performed + 1.
 
         Args:
             samples: training samples, shape (num_samples, num_features)
@@ -211,11 +233,13 @@ class KMeansClustering:
 
             # Update step
             new_centroids = self._update_centroids(samples, assignments)
-            centroid_shift = self._compute_centroid_shift(self.centroids, new_centroids)
+            squared_centroid_shift = self._compute_squared_centroid_shift(
+                self.centroids, new_centroids
+            )
             self.centroids = new_centroids
 
             # Stop if the centroids no longer move
-            if centroid_shift <= self.convergence_threshold:
+            if squared_centroid_shift <= self.convergence_threshold:
                 break
 
         # Record the final centroids and the SSE they produce
@@ -269,28 +293,26 @@ class KMeansClustering:
             assignments: predicted cluster assignments in {0, ..., num_clusters-1},
                 shape (num_samples,)
         """
-        # Assign each sample to the centroid with the smallest distance
-        return np.argmin(self.forward(samples), axis=1)
+        # Squared distance is monotone in distance, so the argmin is the same
+        return np.argmin(self._compute_all_squared_distances(samples), axis=1)
 
-    def forward(self, samples):
+    def _compute_all_squared_distances(self, samples):
         """
-        Forward pass: compute the distances of samples to all centroids.
+        Compute the squared distances of samples to all centroids.
 
         Args:
             samples: input samples, shape (num_samples, num_features)
 
         Returns:
-            distances: distances[i, j] = ||x_i - mu_j||,
+            squared_distances: squared_distances[i, j] = ||x_i - μ_j||^2,
                 shape (num_samples, num_clusters)
         """
-        samples = np.asarray(samples, dtype=float)
-
-        # Broadcast samples against centroids to get all pairwise differences:
-        # (num_samples, 1, num_features) - (1, num_clusters, num_features)
-        #   -> (num_samples, num_clusters, num_features)
-        differences = samples[:, np.newaxis, :] - self.centroids[np.newaxis, :, :]
-
-        return np.linalg.norm(differences, axis=2)
+        squared_distances = np.empty((samples.shape[0], self.num_clusters))
+        for j in range(self.num_clusters):
+            squared_distances[:, j] = self._compute_squared_distances(
+                samples, self.centroids[j]
+            )
+        return squared_distances
 
 
 ##############################################################################
@@ -330,7 +352,7 @@ if __name__ == "__main__":
         "--convergence-threshold",
         type=float,
         default=1e-6,
-        help="Stop once the Frobenius norm of the centroid update drops "
+        help="Stop once the squared Frobenius norm of the centroid update drops "
         "to this value or below",
     )
     args = parser.parse_args()
