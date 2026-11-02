@@ -78,9 +78,8 @@ class GaussianMixtureGibbs:
         log_posterior_history: log-posterior (up to a constant) per recorded
             parameter vector, list of floats
         parameter_history: flattened parameters (means, covariances, coefficients)
-            per recorded parameter vector, list of 1D arrays. Entry t holds the parameters
-            that produced log_likelihood_history[t] and log_posterior_history[t],
-            so position and color cannot drift apart in the trajectory plot.
+            per recorded snapshot, list of 1D arrays. Entry t holds the parameters
+            that produced log_likelihood_history[t] and log_posterior_history[t]
         alpha, mu_0, kappa_0, psi_0, nu_0: prior hyperparameters, set in train()
             once the number of features is known
     """

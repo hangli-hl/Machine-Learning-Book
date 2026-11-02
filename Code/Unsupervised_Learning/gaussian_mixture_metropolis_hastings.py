@@ -110,7 +110,7 @@ class GaussianMixtureMetropolis:
         acceptance_rate_history: windowed acceptance rate per recorded parameter
             vector, list of floats
         parameter_history: flattened parameters (means, covariances, coefficients)
-            per recorded parameter vector, list of 1D arrays. Entry t holds the
+            per recorded snapshot, list of 1D arrays. Entry t holds the
             parameters that produced log_likelihood_history[t] and
             acceptance_rate_history[t].
     """
