@@ -175,6 +175,43 @@ class RegressionTree:
         """
         return np.mean(values)
 
+    def _find_best_threshold(self, instances, values):
+        """
+        Find the best threshold that minimizes the weighted MSE.
+
+        Search over all features and all midpoints between adjacent unique
+        feature values to find the threshold that minimizes the weighted MSE.
+
+        Args:
+            instances: instances at this node, shape (num_instances, num_features)
+            values: values at this node, shape (num_instances,)
+
+        Returns:
+            tuple: (best_feature, best_threshold) where
+                - best_feature: index of the feature to split on, an integer
+                    (None if no valid split exists)
+                - best_threshold: threshold for the split, a float
+                    (None if no valid split exists)
+        """
+        best_mse = float("inf")
+        best_feature, best_threshold = None, None
+
+        # Try all features and thresholds (a constant feature has no thresholds)
+        for feature in range(self.num_features):
+            feature_values = instances[:, feature]
+
+            for threshold in self._compute_candidate_thresholds(feature_values):
+                # Compute weighted MSE for this threshold
+                mse = self._compute_weighted_mse(feature_values, threshold, values)
+
+                # Update best threshold if this one is better
+                if mse < best_mse:
+                    best_mse = mse
+                    best_feature = feature
+                    best_threshold = threshold
+
+        return best_feature, best_threshold
+
     # ------------------------------------------------------------------
     # Training
     # ------------------------------------------------------------------
@@ -194,9 +231,9 @@ class RegressionTree:
         self.num_features = instances.shape[1]
 
         # Build the tree from the root
-        self.root = self._grow_tree(instances, values)
+        self.root = self.grow_tree(instances, values)
 
-    def _grow_tree(self, instances, values, depth=0):
+    def grow_tree(self, instances, values, depth=0):
         """
         Recursively grow the regression tree.
 
@@ -236,49 +273,12 @@ class RegressionTree:
         # Split the data and recursively build subtrees
         left_mask = instances[:, best_feature] <= best_threshold
         right_mask = ~left_mask
-        left = self._grow_tree(instances[left_mask], values[left_mask], depth + 1)
-        right = self._grow_tree(instances[right_mask], values[right_mask], depth + 1)
+        left = self.grow_tree(instances[left_mask], values[left_mask], depth + 1)
+        right = self.grow_tree(instances[right_mask], values[right_mask], depth + 1)
 
         return RegressionNode(
             feature=best_feature, threshold=best_threshold, left=left, right=right
         )
-
-    def _find_best_threshold(self, instances, values):
-        """
-        Find the best threshold that minimizes the weighted MSE.
-
-        Search over all features and all midpoints between adjacent unique
-        feature values to find the threshold that minimizes the weighted MSE.
-
-        Args:
-            instances: instances at this node, shape (num_instances, num_features)
-            values: values at this node, shape (num_instances,)
-
-        Returns:
-            tuple: (best_feature, best_threshold) where
-                - best_feature: index of the feature to split on, an integer
-                    (None if no valid split exists)
-                - best_threshold: threshold for the split, a float
-                    (None if no valid split exists)
-        """
-        best_mse = float("inf")
-        best_feature, best_threshold = None, None
-
-        # Try all features and thresholds (a constant feature has no thresholds)
-        for feature in range(self.num_features):
-            feature_values = instances[:, feature]
-
-            for threshold in self._compute_candidate_thresholds(feature_values):
-                # Compute weighted MSE for this threshold
-                mse = self._compute_weighted_mse(feature_values, threshold, values)
-
-                # Update best threshold if this one is better
-                if mse < best_mse:
-                    best_mse = mse
-                    best_feature = feature
-                    best_threshold = threshold
-
-        return best_feature, best_threshold
 
     # ------------------------------------------------------------------
     # Prediction
@@ -297,10 +297,10 @@ class RegressionTree:
             values: predicted values, shape (num_instances,), dtype=float
         """
         return np.array(
-            [self._traverse_tree(instance, self.root) for instance in instances]
+            [self.traverse_tree(instance, self.root) for instance in instances]
         )
 
-    def _traverse_tree(self, instance, node):
+    def traverse_tree(self, instance, node):
         """
         Traverse the tree to make a prediction for a single instance.
 
@@ -319,8 +319,8 @@ class RegressionTree:
 
         # Otherwise, recurse to left or right child
         if instance[node.feature] <= node.threshold:
-            return self._traverse_tree(instance, node.left)
-        return self._traverse_tree(instance, node.right)
+            return self.traverse_tree(instance, node.left)
+        return self.traverse_tree(instance, node.right)
 
 
 ##############################################################################

@@ -186,6 +186,43 @@ class ClassificationTree:
         values, counts = np.unique(labels, return_counts=True)
         return values[np.argmax(counts)]
 
+    def _find_best_threshold(self, instances, labels):
+        """
+        Find the best threshold that minimizes the weighted Gini index.
+
+        Search over all features and all midpoints between adjacent unique
+        feature values to find the threshold that minimizes the weighted Gini index.
+
+        Args:
+            instances: instances at this node, shape (num_instances, num_features)
+            labels: class labels at this node, shape (num_instances,)
+
+        Returns:
+            tuple: (best_feature, best_threshold) where
+                - best_feature: index of the feature to split on, an integer
+                    (None if no valid split exists)
+                - best_threshold: threshold for the split, a float
+                    (None if no valid split exists)
+        """
+        best_gini = float("inf")
+        best_feature, best_threshold = None, None
+
+        # Try all features and thresholds (a constant feature has no thresholds)
+        for feature in range(self.num_features):
+            feature_values = instances[:, feature]
+
+            for threshold in self._compute_candidate_thresholds(feature_values):
+                # Compute weighted Gini index for this threshold
+                gini = self._compute_weighted_gini(feature_values, threshold, labels)
+
+                # Update best threshold if this one is better
+                if gini < best_gini:
+                    best_gini = gini
+                    best_feature = feature
+                    best_threshold = threshold
+
+        return best_feature, best_threshold
+
     # ------------------------------------------------------------------
     # Training
     # ------------------------------------------------------------------
@@ -206,9 +243,9 @@ class ClassificationTree:
         self.num_features = instances.shape[1]
 
         # Build the tree from the root
-        self.root = self._grow_tree(instances, labels)
+        self.root = self.grow_tree(instances, labels)
 
-    def _grow_tree(self, instances, labels, depth=0):
+    def grow_tree(self, instances, labels, depth=0):
         """
         Recursively grow the classification tree.
 
@@ -249,49 +286,12 @@ class ClassificationTree:
         # Split the data and recursively build subtrees
         left_mask = instances[:, best_feature] <= best_threshold
         right_mask = ~left_mask
-        left = self._grow_tree(instances[left_mask], labels[left_mask], depth + 1)
-        right = self._grow_tree(instances[right_mask], labels[right_mask], depth + 1)
+        left = self.grow_tree(instances[left_mask], labels[left_mask], depth + 1)
+        right = self.grow_tree(instances[right_mask], labels[right_mask], depth + 1)
 
         return ClassificationNode(
             feature=best_feature, threshold=best_threshold, left=left, right=right
         )
-
-    def _find_best_threshold(self, instances, labels):
-        """
-        Find the best threshold that minimizes the weighted Gini index.
-
-        Search over all features and all midpoints between adjacent unique
-        feature values to find the threshold that minimizes the weighted Gini index.
-
-        Args:
-            instances: instances at this node, shape (num_instances, num_features)
-            labels: class labels at this node, shape (num_instances,)
-
-        Returns:
-            tuple: (best_feature, best_threshold) where
-                - best_feature: index of the feature to split on, an integer
-                    (None if no valid split exists)
-                - best_threshold: threshold for the split, a float
-                    (None if no valid split exists)
-        """
-        best_gini = float("inf")
-        best_feature, best_threshold = None, None
-
-        # Try all features and thresholds (a constant feature has no thresholds)
-        for feature in range(self.num_features):
-            feature_values = instances[:, feature]
-
-            for threshold in self._compute_candidate_thresholds(feature_values):
-                # Compute weighted Gini index for this threshold
-                gini = self._compute_weighted_gini(feature_values, threshold, labels)
-
-                # Update best threshold if this one is better
-                if gini < best_gini:
-                    best_gini = gini
-                    best_feature = feature
-                    best_threshold = threshold
-
-        return best_feature, best_threshold
 
     # ------------------------------------------------------------------
     # Prediction
@@ -310,10 +310,10 @@ class ClassificationTree:
             labels: predicted class labels in {0, 1}, shape (num_instances,), dtype=int
         """
         return np.array(
-            [self._traverse_tree(instance, self.root) for instance in instances]
+            [self.traverse_tree(instance, self.root) for instance in instances]
         )
 
-    def _traverse_tree(self, instance, node):
+    def traverse_tree(self, instance, node):
         """
         Traverse the tree to make a prediction for a single instance.
 
@@ -332,8 +332,8 @@ class ClassificationTree:
 
         # Otherwise, recurse to left or right child
         if instance[node.feature] <= node.threshold:
-            return self._traverse_tree(instance, node.left)
-        return self._traverse_tree(instance, node.right)
+            return self.traverse_tree(instance, node.left)
+        return self.traverse_tree(instance, node.right)
 
 
 ##############################################################################
