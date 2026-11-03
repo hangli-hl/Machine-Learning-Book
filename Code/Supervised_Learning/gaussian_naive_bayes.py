@@ -220,9 +220,9 @@ class GaussianNaiveBayes:
         class_indices = np.argmax(log_posteriors, axis=1)
         return self.classes[class_indices]
 
-    def compute_posteriors(self, instances):
+    def forward(self, instances):
         """
-        Compute the posterior probabilities for all instances.
+        Forward pass: compute the posterior probabilities for all instances.
 
         Column k corresponds to self.classes[k]; for binary labels in {0, 1},
         column 1 is P(y=1|x).

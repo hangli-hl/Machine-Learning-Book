@@ -439,7 +439,7 @@ def visualize_gaussian_naive_bayes(instances, labels, model):
     visualize_binary_classification(
         instances,
         labels,
-        lambda grid: model.compute_posteriors(grid)[:, 1],
+        lambda grid: model.forward(grid)[:, 1],
         title="Gaussian Naive Bayes",
         file_name="gaussian_naive_bayes_model",
         prediction_type="probability",

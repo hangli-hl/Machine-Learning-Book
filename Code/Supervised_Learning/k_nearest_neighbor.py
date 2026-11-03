@@ -314,9 +314,9 @@ class KNearestNeighborsClassifier:
         Returns:
             labels: predicted class labels in {0, 1}, shape (num_instances,), dtype=int
         """
-        return np.array([self._predict_one(instance) for instance in instances])
+        return np.array([self.predict_one(instance) for instance in instances])
 
-    def _predict_one(self, instance):
+    def predict_one(self, instance):
         """
         Make a prediction for a single instance.
 
@@ -327,10 +327,10 @@ class KNearestNeighborsClassifier:
             label: predicted class label (majority class of the k nearest neighbors), an integer
         """
         neighbor_heap = []
-        self._search_kd_tree(instance, self.root, neighbor_heap)
+        self.search_kd_tree(instance, self.root, neighbor_heap)
         return self._majority_vote(self._extract_labels(neighbor_heap))
 
-    def _search_kd_tree(self, target, node, neighbor_heap):
+    def search_kd_tree(self, target, node, neighbor_heap):
         """
         Recursively search the KD-tree for the k nearest neighbors.
 
@@ -354,11 +354,11 @@ class KNearestNeighborsClassifier:
 
         # Search the side of the splitting plane that contains the target first
         near_subtree, far_subtree = self._order_subtrees(target, node)
-        self._search_kd_tree(target, near_subtree, neighbor_heap)
+        self.search_kd_tree(target, near_subtree, neighbor_heap)
 
         # Search the other side only if it could contain a closer point
         if self._need_search_far_side(target, node, neighbor_heap):
-            self._search_kd_tree(target, far_subtree, neighbor_heap)
+            self.search_kd_tree(target, far_subtree, neighbor_heap)
 
 
 ##############################################################################
