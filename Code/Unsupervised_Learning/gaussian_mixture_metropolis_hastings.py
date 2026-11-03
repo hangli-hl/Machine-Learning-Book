@@ -90,7 +90,7 @@ class GaussianMixtureMetropolis:
         means: component means, shape (num_components, num_features)
         covariances: component covariances,
             shape (num_components, num_features, num_features)
-        logits: free logits of the last state of the chain, shape (num_components - 1,)
+        logits: free logits of the final parameters, shape (num_components - 1,)
         assignments: component assignments of the training samples under the final
             parameters, shape (num_training_samples,)
         best_log_likelihood: highest log-likelihood found after burn-in, a float
@@ -304,6 +304,87 @@ class GaussianMixtureMetropolis:
             f"covariance_relative_deviation={self.covariance_relative_deviation:.4g}"
         )
 
+    def _propose_parameters(self):
+        """
+        Propose new parameters from the current ones.
+
+        Returns:
+            proposed_coefficients: shape (num_components,)
+            proposed_means: shape (num_components, num_features)
+            proposed_covariances: shape (num_components, num_features, num_features)
+            proposed_logits: shape (num_components - 1,)
+            log_proposal_ratio: log q(current | proposed) - log q(proposed | current)
+        """
+        num_features = self.num_features
+
+        # Derive the degrees of freedom ν from the relative deviation of the
+        # covariance proposal: sqrt(2 / (ν - D - 3)) = covariance_relative_deviation
+        nu = num_features + 3.0 + 2.0 / self.covariance_relative_deviation**2
+
+        # 1. Means: symmetric random walk, ratio = 0
+        proposed_means = self.means + self.mean_step * np.random.randn(
+            self.num_components, num_features
+        )
+
+        # 2. Coefficients: random walk on the logits with the last logit set to 0
+        if self.num_components > 1:
+            proposed_logits = self.logits + self.logit_step * np.random.randn(
+                self.num_components - 1
+            )
+            full_logits = np.append(proposed_logits, 0.0)
+            proposed_coefficients = np.exp(full_logits - logsumexp(full_logits))
+        else:
+            proposed_logits = self.logits
+            proposed_coefficients = np.array([1.0])
+
+        # 3. Covariances: asymmetric Inverse-Wishart proposal
+        log_proposal_ratio = 0.0
+        proposed_covariances = np.zeros_like(self.covariances)
+        for j in range(self.num_components):
+            current_covariance = self.covariances[j]
+
+            # Forward scale chosen so that E[Σ*] = Σ_current
+            scale_forward = (nu - num_features - 1) * current_covariance
+            proposed_covariance = invwishart.rvs(df=nu, scale=scale_forward)
+            # atleast_2d keeps the matrix shape when there is a single feature
+            proposed_covariance = np.atleast_2d(proposed_covariance)
+            proposed_covariance = (proposed_covariance + proposed_covariance.T) / 2.0
+            proposed_covariances[j] = proposed_covariance
+
+            scale_reverse = (nu - num_features - 1) * proposed_covariance
+
+            log_proposal_ratio += invwishart.logpdf(
+                current_covariance, df=nu, scale=scale_reverse
+            ) - invwishart.logpdf(proposed_covariance, df=nu, scale=scale_forward)
+
+        return (
+            proposed_coefficients,
+            proposed_means,
+            proposed_covariances,
+            proposed_logits,
+            log_proposal_ratio,
+        )
+
+    def _compute_log_likelihood(self, samples, coefficients, means, covariances):
+        """
+        Compute the total log-likelihood in log-space for the given parameters.
+
+            log L = Σ_{i=1}^N log( Σ_{j=1}^K π_j * N(x_i | μ_j, Σ_j) )
+
+        Args:
+            samples: input samples, shape (num_samples, num_features)
+            coefficients: shape (num_components,)
+            means: shape (num_components, num_features)
+            covariances: shape (num_components, num_features, num_features)
+
+        Returns:
+            log_likelihood: total log-likelihood, a float
+        """
+        log_weighted_densities = self.compute_log_weighted_densities(
+            samples, coefficients, means, covariances
+        )
+        return float(np.sum(logsumexp(log_weighted_densities, axis=1)))
+
     # ------------------------------------------------------------------
     # Training
     # ------------------------------------------------------------------
@@ -382,7 +463,9 @@ class GaussianMixtureMetropolis:
                 self._record_parameters(current_log_likelihood, recent_acceptance_rate)
 
                 # Keep track of the best parameters based on log-likelihood
-                if best_parameters is None or current_log_likelihood > best_log_likelihood:
+                if (best_parameters is None
+                    or current_log_likelihood > best_log_likelihood
+                ):
                     best_log_likelihood = current_log_likelihood
                     best_parameters = (
                         self.coefficients.copy(),
@@ -407,87 +490,6 @@ class GaussianMixtureMetropolis:
         self.acceptance_rate = num_accepts / (self.num_iterations - self.burn_in)
         self.assignments = self.predict(samples)
 
-    def _propose_parameters(self):
-        """
-        Propose new parameters from the current ones.
-
-        Returns:
-            proposed_coefficients: shape (num_components,)
-            proposed_means: shape (num_components, num_features)
-            proposed_covariances: shape (num_components, num_features, num_features)
-            proposed_logits: shape (num_components - 1,)
-            log_proposal_ratio: log q(current | proposed) - log q(proposed | current)
-        """
-        num_features = self.num_features
-
-        # Derive the degrees of freedom ν from the relative deviation of the
-        # covariance proposal: sqrt(2 / (ν - D - 3)) = covariance_relative_deviation
-        nu = num_features + 3.0 + 2.0 / self.covariance_relative_deviation**2
-
-        # 1. Means: symmetric random walk, ratio = 0
-        proposed_means = self.means + self.mean_step * np.random.randn(
-            self.num_components, num_features
-        )
-
-        # 2. Coefficients: random walk on the logits with the last logit set to 0
-        if self.num_components > 1:
-            proposed_logits = self.logits + self.logit_step * np.random.randn(
-                self.num_components - 1
-            )
-            full_logits = np.append(proposed_logits, 0.0)
-            proposed_coefficients = np.exp(full_logits - logsumexp(full_logits))
-        else:
-            proposed_logits = self.logits
-            proposed_coefficients = np.array([1.0])
-
-        # 3. Covariances: asymmetric Inverse-Wishart proposal
-        log_proposal_ratio = 0.0
-        proposed_covariances = np.zeros_like(self.covariances)
-        for j in range(self.num_components):
-            current_covariance = self.covariances[j]
-
-            # Forward scale chosen so that E[Σ*] = Σ_current
-            scale_forward = (nu - num_features - 1) * current_covariance
-            proposed_covariance = invwishart.rvs(df=nu, scale=scale_forward)
-            # atleast_2d keeps the matrix shape when there is a single feature
-            proposed_covariance = np.atleast_2d(proposed_covariance)
-            proposed_covariance = (proposed_covariance + proposed_covariance.T) / 2.0
-            proposed_covariances[j] = proposed_covariance
-
-            scale_reverse = (nu - num_features - 1) * proposed_covariance
-
-            log_proposal_ratio += invwishart.logpdf(
-                current_covariance, df=nu, scale=scale_reverse
-            ) - invwishart.logpdf(proposed_covariance, df=nu, scale=scale_forward)
-
-        return (
-            proposed_coefficients,
-            proposed_means,
-            proposed_covariances,
-            proposed_logits,
-            log_proposal_ratio,
-        )
-
-    def _compute_log_likelihood(self, samples, coefficients, means, covariances):
-        """
-        Compute the total log-likelihood in log-space for the given parameters.
-
-            log L = Σ_{i=1}^N log( Σ_{j=1}^K π_j * N(x_i | μ_j, Σ_j) )
-
-        Args:
-            samples: input samples, shape (num_samples, num_features)
-            coefficients: shape (num_components,)
-            means: shape (num_components, num_features)
-            covariances: shape (num_components, num_features, num_features)
-
-        Returns:
-            log_likelihood: total log-likelihood, a float
-        """
-        log_weighted_densities = self._compute_log_weighted_densities(
-            samples, coefficients, means, covariances
-        )
-        return float(np.sum(logsumexp(log_weighted_densities, axis=1)))
-
     # ------------------------------------------------------------------
     # Prediction
     # ------------------------------------------------------------------
@@ -505,14 +507,15 @@ class GaussianMixtureMetropolis:
             assignments: predicted component assignments in {0, ..., num_components-1},
                 shape (num_samples,)
         """
+        samples = np.asarray(samples, dtype=float)
         # The posterior is the weighted density divided by a per-sample constant,
         # so both have the same argmax
-        log_weighted_densities = self._compute_log_weighted_densities(
+        log_weighted_densities = self.compute_log_weighted_densities(
             samples, self.coefficients, self.means, self.covariances
         )
         return np.argmax(log_weighted_densities, axis=1)
 
-    def _compute_log_weighted_densities(self, samples, coefficients, means, covariances):
+    def compute_log_weighted_densities(self, samples, coefficients, means, covariances):
         """
         Compute the log weighted densities of samples under all components.
 
@@ -520,9 +523,9 @@ class GaussianMixtureMetropolis:
 
         Args:
             samples: input samples, shape (num_samples, num_features)
+            coefficients: shape (num_components,)
             means: shape (num_components, num_features)
             covariances: shape (num_components, num_features, num_features)
-            coefficients: shape (num_components,)
 
         Returns:
             log_weighted_densities: Entry[i, j] is log( π_j * N(x_i | μ_j, Σ_j) ),

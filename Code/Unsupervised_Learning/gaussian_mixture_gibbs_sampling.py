@@ -204,75 +204,6 @@ class GaussianMixtureGibbs:
         )
         self.log_posterior_history.append(log_posterior)
 
-    # ------------------------------------------------------------------
-    # Training
-    # ------------------------------------------------------------------
-
-    def train(self, samples):
-        """
-        Train the Gaussian mixture model with Gibbs sampling.
-
-        In each iteration, the component assignments are sampled under the current
-        parameters, then the parameters are sampled given the assignments, and finally
-        the log-posterior of the new parameters is computed. From iteration burn_in on,
-        the parameters and their scores are recorded together. After the last iteration,
-        the recorded parameters with the highest log-posterior become the final parameters.
-
-        Args:
-            samples: training samples, shape (num_samples, num_features)
-
-        Raises:
-            ValueError: if samples is invalid (see _check_samples)
-            FloatingPointError: if the log-posterior is not finite
-        """
-        samples = self._check_samples(samples)
-        self._init_parameters(samples)
-
-        # Initialize the best parameters
-        best_log_posterior = -np.inf
-        best_parameters = None
-
-        for iteration in range(self.num_iterations):
-            # Sample component assignments, then parameters given the assignments
-            self._sample_assignments(samples)
-            self._sample_parameters(samples)
-
-            # Score the new parameters with the log-posterior (up to a constant)
-            (
-                log_prior,
-                log_likelihood,
-                log_posterior,
-            ) = self._compute_log_posterior(samples)
-
-            if not np.isfinite(log_posterior):
-                raise FloatingPointError(
-                    f"Non-finite log-posterior ({log_posterior}) at iteration "
-                    f"{iteration}: log-prior={log_prior}, log-likelihood={log_likelihood}"
-                )
-
-            if iteration >= self.burn_in:
-                self._record_parameters(log_posterior)
-
-                # Keep track of the best parameters based on log-posterior
-                if log_posterior > best_log_posterior:
-                    best_log_posterior = log_posterior
-                    best_parameters = (
-                        self.means.copy(),
-                        self.covariances.copy(),
-                        self.coefficients.copy(),
-                    )
-
-            if iteration % LOG_INTERVAL == 0:
-                print(
-                    f"Iteration {iteration}/{self.num_iterations}, "
-                    f"log-posterior: {log_posterior:.3f}"
-                )
-
-        # Keep the parameters with the highest log-posterior after burn-in
-        self.means, self.covariances, self.coefficients = best_parameters
-        self.best_log_posterior = best_log_posterior
-        self.assignments = self.predict(samples)
-
     def _sample_assignments(self, samples):
         """
         Sample one categorical assignment per sample via the inverse-CDF method.
@@ -280,7 +211,7 @@ class GaussianMixtureGibbs:
         Args:
             samples: training samples, shape (num_samples, num_features)
         """
-        log_weighted_densities = self._compute_log_weighted_densities(samples)
+        log_weighted_densities = self.compute_log_weighted_densities(samples)
         probabilities = np.exp(
             log_weighted_densities
             - logsumexp(log_weighted_densities, axis=1, keepdims=True)
@@ -373,7 +304,7 @@ class GaussianMixtureGibbs:
         """
         log_prior = self._compute_log_prior()
         log_likelihood = float(
-            np.sum(logsumexp(self._compute_log_weighted_densities(samples), axis=1))
+            np.sum(logsumexp(self.compute_log_weighted_densities(samples), axis=1))
         )
         return log_prior, log_likelihood, log_likelihood + log_prior
 
@@ -411,6 +342,75 @@ class GaussianMixtureGibbs:
         return log_prior
 
     # ------------------------------------------------------------------
+    # Training
+    # ------------------------------------------------------------------
+
+    def train(self, samples):
+        """
+        Train the Gaussian mixture model with Gibbs sampling.
+
+        In each iteration, the component assignments are sampled under the current
+        parameters, then the parameters are sampled given the assignments, and finally
+        the log-posterior of the new parameters is computed. From iteration burn_in on,
+        the parameters and their scores are recorded together. After the last iteration,
+        the recorded parameters with the highest log-posterior become the final parameters.
+
+        Args:
+            samples: training samples, shape (num_samples, num_features)
+
+        Raises:
+            ValueError: if samples is invalid (see _check_samples)
+            FloatingPointError: if the log-posterior is not finite
+        """
+        samples = self._check_samples(samples)
+        self._init_parameters(samples)
+
+        # Initialize the best parameters
+        best_log_posterior = -np.inf
+        best_parameters = None
+
+        for iteration in range(self.num_iterations):
+            # Sample component assignments, then parameters given the assignments
+            self._sample_assignments(samples)
+            self._sample_parameters(samples)
+
+            # Score the new parameters with the log-posterior (up to a constant)
+            (
+                log_prior,
+                log_likelihood,
+                log_posterior,
+            ) = self._compute_log_posterior(samples)
+
+            if not np.isfinite(log_posterior):
+                raise FloatingPointError(
+                    f"Non-finite log-posterior ({log_posterior}) at iteration "
+                    f"{iteration}: log-prior={log_prior}, log-likelihood={log_likelihood}"
+                )
+
+            if iteration >= self.burn_in:
+                self._record_parameters(log_posterior)
+
+                # Keep track of the best parameters based on log-posterior
+                if log_posterior > best_log_posterior:
+                    best_log_posterior = log_posterior
+                    best_parameters = (
+                        self.means.copy(),
+                        self.covariances.copy(),
+                        self.coefficients.copy(),
+                    )
+
+            if iteration % LOG_INTERVAL == 0:
+                print(
+                    f"Iteration {iteration}/{self.num_iterations}, "
+                    f"log-posterior: {log_posterior:.3f}"
+                )
+
+        # Keep the parameters with the highest log-posterior after burn-in
+        self.means, self.covariances, self.coefficients = best_parameters
+        self.best_log_posterior = best_log_posterior
+        self.assignments = self.predict(samples)
+
+    # ------------------------------------------------------------------
     # Prediction
     # ------------------------------------------------------------------
 
@@ -427,11 +427,12 @@ class GaussianMixtureGibbs:
             assignments: predicted component assignments in {0, ..., num_components-1},
                 shape (num_samples,)
         """
+        samples = np.asarray(samples, dtype=float)
         # The posterior is the weighted density divided by a per-sample constant,
         # so both have the same argmax
-        return np.argmax(self._compute_log_weighted_densities(samples), axis=1)
+        return np.argmax(self.compute_log_weighted_densities(samples), axis=1)
 
-    def _compute_log_weighted_densities(self, samples):
+    def compute_log_weighted_densities(self, samples):
         """
         Compute the log weighted densities of samples under all components.
 

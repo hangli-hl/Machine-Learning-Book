@@ -232,7 +232,7 @@ class KMeansClustering:
             self._record_parameters(samples, assignments)
 
             # Update step
-            new_centroids = self._update_centroids(samples, assignments)
+            new_centroids = self.update_centroids(samples, assignments)
             squared_centroid_shift = self._compute_squared_centroid_shift(
                 self.centroids, new_centroids
             )
@@ -246,7 +246,7 @@ class KMeansClustering:
         self.assignments = self.predict(samples)
         self._record_parameters(samples, self.assignments)
 
-    def _update_centroids(self, samples, assignments):
+    def update_centroids(self, samples, assignments):
         """
         Update step: recompute every centroid as the mean of its assigned samples.
 
@@ -293,10 +293,11 @@ class KMeansClustering:
             assignments: predicted cluster assignments in {0, ..., num_clusters-1},
                 shape (num_samples,)
         """
+        samples = np.asarray(samples, dtype=float)
         # Squared distance is monotone in distance, so the argmin is the same
-        return np.argmin(self._compute_all_squared_distances(samples), axis=1)
+        return np.argmin(self.compute_all_squared_distances(samples), axis=1)
 
-    def _compute_all_squared_distances(self, samples):
+    def compute_all_squared_distances(self, samples):
         """
         Compute the squared distances of samples to all centroids.
 

@@ -194,16 +194,16 @@ class GaussianMixtureEM:
         self._init_parameters(samples)
 
         # E-step on the initial parameters, then record them
-        responsibilities, log_likelihood = self._e_step(samples)
+        responsibilities, log_likelihood = self.e_step(samples)
         self._record_parameters(log_likelihood)
 
         for _ in range(self.num_iterations):
             # M-step
-            self._m_step(samples, responsibilities)
+            self.m_step(samples, responsibilities)
 
             # E-step under the new parameters, then record them with their
             # log-likelihood
-            responsibilities, new_log_likelihood = self._e_step(samples)
+            responsibilities, new_log_likelihood = self.e_step(samples)
             self._record_parameters(new_log_likelihood)
 
             log_likelihood_change = abs(new_log_likelihood - log_likelihood)
@@ -216,7 +216,7 @@ class GaussianMixtureEM:
         self.responsibilities = responsibilities
         self.assignments = self.predict(samples)
 
-    def _e_step(self, samples):
+    def e_step(self, samples):
         """
         E-step: compute responsibilities and the log-likelihood of the current
         parameters.
@@ -237,7 +237,7 @@ class GaussianMixtureEM:
                 shape (num_samples, num_components)
             log_likelihood: log-likelihood under the current parameters, a float
         """
-        log_weighted_densities = self._compute_log_weighted_densities(samples)
+        log_weighted_densities = self.compute_log_weighted_densities(samples)
         log_total = logsumexp(log_weighted_densities, axis=1, keepdims=True)
 
         responsibilities = np.exp(log_weighted_densities - log_total)
@@ -245,7 +245,7 @@ class GaussianMixtureEM:
 
         return responsibilities, log_likelihood
 
-    def _m_step(self, samples, responsibilities):
+    def m_step(self, samples, responsibilities):
         """
         M-step: update coefficients, means and covariances from the responsibilities.
 
@@ -299,11 +299,12 @@ class GaussianMixtureEM:
             assignments: predicted component assignments in {0, ..., num_components-1},
                 shape (num_samples,)
         """
+        samples = np.asarray(samples, dtype=float)
         # The posterior is the weighted density divided by a per-sample constant,
         # so both have the same argmax
-        return np.argmax(self._compute_log_weighted_densities(samples), axis=1)
+        return np.argmax(self.compute_log_weighted_densities(samples), axis=1)
 
-    def _compute_log_weighted_densities(self, samples):
+    def compute_log_weighted_densities(self, samples):
         """
         Compute the log weighted densities of samples under all components.
 
