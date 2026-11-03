@@ -133,7 +133,7 @@ class LinearRegression:
 
         for _ in range(self.num_iterations):
             # One gradient descent update
-            self._backward(instances, values)
+            self.backward(instances, values)
 
             # Log the loss after this update
             self.loss_log.append(self._compute_loss(instances, values))
@@ -144,7 +144,7 @@ class LinearRegression:
                 if loss_change < self.convergence_threshold:
                     break
 
-    def _backward(self, instances, values):
+    def backward(self, instances, values):
         """
         Backward pass: compute gradients on the full training set and update parameters.
 

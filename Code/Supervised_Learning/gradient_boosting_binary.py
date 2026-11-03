@@ -119,31 +119,6 @@ class GradientBoostingBinary:
         """
         return uf.logistic_loss(labels, uf.sigmoid(logits))
 
-    def _compute_logits(self, instances):
-        """
-        Compute the logits of the positive class of all instances.
-
-        The logit is the sum of the initial prediction and all learner predictions,
-        scaled by the shrinkage:
-            f(x) = f_0 + sum_{j=1}^{M} η · h_j(x)
-        where f_0 is the initial prediction (log-odds of the positive class prior),
-        h_j is the j-th trained learner (a regression tree), η is the shrinkage,
-        and M is the number of learners in the ensemble.
-
-        Args:
-            instances: input instances, shape (num_instances, num_features)
-
-        Returns:
-            logits: predicted logits f(x), shape (num_instances,)
-        """
-        logits = np.full(instances.shape[0], self.initial_prediction, dtype=float)
-
-        # Accumulate the shrunken predictions of all learners
-        for learner in self.ensemble:
-            logits += self._predict_learner(learner, instances)
-
-        return logits
-
     def _train_learner(self, instances, residuals):
         """
         Train a new base learner (regression tree) on the pseudo-residuals.
@@ -251,10 +226,35 @@ class GradientBoostingBinary:
             labels: predicted class labels in {0, 1}, shape (num_instances,), dtype=int
         """
         # Compute logits of the positive class
-        logits = self._compute_logits(instances)
+        logits = self.compute_logits(instances)
 
         # Apply decision rule: predict 1 if logit >= 0, else 0
         return np.where(logits >= 0, 1, 0)
+
+    def compute_logits(self, instances):
+        """
+        Compute the logits of the positive class of all instances.
+
+        The logit is the sum of the initial prediction and all learner predictions,
+        scaled by the shrinkage:
+            f(x) = f_0 + sum_{j=1}^{M} η · h_j(x)
+        where f_0 is the initial prediction (log-odds of the positive class prior),
+        h_j is the j-th trained learner (a regression tree), η is the shrinkage,
+        and M is the number of learners in the ensemble.
+
+        Args:
+            instances: input instances, shape (num_instances, num_features)
+
+        Returns:
+            logits: predicted logits f(x), shape (num_instances,)
+        """
+        logits = np.full(instances.shape[0], self.initial_prediction, dtype=float)
+
+        # Accumulate the shrunken predictions of all learners
+        for learner in self.ensemble:
+            logits += self._predict_learner(learner, instances)
+
+        return logits
 
     def forward(self, instances):
         """
@@ -267,7 +267,7 @@ class GradientBoostingBinary:
             probs: predicted probabilities, shape (num_instances,), values in [0, 1]
         """
         # Compute logits and apply sigmoid to get probabilities
-        logits = self._compute_logits(instances)
+        logits = self.compute_logits(instances)
         probs = uf.sigmoid(logits)
 
         return probs

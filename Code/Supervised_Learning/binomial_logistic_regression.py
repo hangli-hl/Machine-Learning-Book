@@ -87,9 +87,24 @@ class BinomialLogisticRegression:
         self.bias = 0.0
 
     @staticmethod
+    def _compute_logits(instances, weights, bias):
+        """
+        Compute logits z = w · x + b with the given parameters.
+
+        Args:
+            instances: multiple input instances of shape (num_instances, num_features)
+            weights: weight vector of shape (num_features,)
+            bias: bias term, a float
+
+        Returns:
+            logits: raw scores, shape (num_instances,)
+        """
+        return instances @ weights + bias
+
+    @staticmethod
     def _compute_probs(instances, weights, bias):
         """
-        Compute P(y=1|x) = σ(w · x + b) for the given parameters.
+        Compute probabilities P(y=1|x) = σ(w · x + b) with the given parameters.
 
         Args:
             instances: instances of shape (num_instances, num_features)
@@ -101,18 +116,6 @@ class BinomialLogisticRegression:
         """
         scores = instances @ weights + bias
         return uf.sigmoid(scores)
-
-    def _compute_logits(self, instances):
-        """
-        Compute raw scores (logits) z = w · x + b with current parameters.
-
-        Args:
-            instances: multiple input instances of shape (num_instances, num_features)
-
-        Returns:
-            logits: raw scores, shape (num_instances,)
-        """
-        return instances @ self.weights + self.bias
 
     @staticmethod
     def _compute_gradients(instances, labels, probs):
@@ -138,6 +141,38 @@ class BinomialLogisticRegression:
         grad_bias = -np.mean(errors)
         return grad_weights, grad_bias
 
+    def _compute_loss_and_gradients(self, parameters, instances, labels):
+        """
+        Compute logistic loss and its gradients for a packed parameter vector.
+
+        This is the objective function for scipy's minimize (with jac=True),
+        which expects (loss, gradient) to be returned together.
+
+        Args:
+            parameters: packed parameter vector [weights..., bias],
+                shape (num_features + 1,)
+            instances: training instances of shape (num_instances, num_features)
+            labels: training labels of shape (num_instances,), labels in {0, 1}
+
+        Returns:
+            tuple: (loss, gradient) where
+                - loss: average logistic loss, a float
+                - gradient: shape (num_features + 1,), same packing as parameters
+        """
+        # Unpack parameters: last element is the bias
+        weights = parameters[:-1]
+        bias = parameters[-1]
+
+        # Forward pass, then loss and gradient
+        probs = self._compute_probs(instances, weights, bias)
+        loss = uf.logistic_loss(labels, probs)
+        grad_weights, grad_bias = self._compute_gradients(instances, labels, probs)
+
+        # Pack gradient in the same layout as the parameters
+        gradient = np.append(grad_weights, grad_bias)
+
+        return loss, gradient
+    
     # ------------------------------------------------------------------
     # Gradient descent
     # ------------------------------------------------------------------
@@ -173,7 +208,7 @@ class BinomialLogisticRegression:
 
         for _ in range(self.num_iterations):
             # Backward pass: compute gradients and update parameters
-            self._backward(instances, labels, probs)
+            self.backward(instances, labels, probs)
 
             # Forward pass with updated parameters; log the new loss
             probs = self.forward(instances)
@@ -185,7 +220,7 @@ class BinomialLogisticRegression:
                 if loss_change < self.convergence_threshold:
                     break
 
-    def _backward(self, instances, labels, probs):
+    def backward(self, instances, labels, probs):
         """
         Backward pass: compute gradients and update parameters (one GD step).
 
@@ -238,12 +273,12 @@ class BinomialLogisticRegression:
 
         def log_loss(params):
             """Called by scipy once per iteration; record the current loss."""
-            loss, _ = self._compute_loss_and_gradient(params, instances, labels)
+            loss, _ = self._compute_loss_and_gradients(params, instances, labels)
             self.loss_log.append(loss)
 
         # Run BFGS optimization
         result = minimize(
-            fun=self._compute_loss_and_gradient,
+            fun=self._compute_loss_and_gradients,
             x0=initial_params,
             args=(instances, labels),
             method="BFGS",
@@ -260,38 +295,6 @@ class BinomialLogisticRegression:
         if not result.success:
             print(f"Warning: BFGS did not converge - {result.message}")
 
-    def _compute_loss_and_gradient(self, parameters, instances, labels):
-        """
-        Compute logistic loss and its gradient for a packed parameter vector.
-
-        This is the objective function for scipy's minimize (with jac=True),
-        which expects (loss, gradient) to be returned together.
-
-        Args:
-            parameters: packed parameter vector [weights..., bias],
-                shape (num_features + 1,)
-            instances: training instances of shape (num_instances, num_features)
-            labels: training labels of shape (num_instances,), labels in {0, 1}
-
-        Returns:
-            tuple: (loss, gradient) where
-                - loss: average logistic loss, a float
-                - gradient: shape (num_features + 1,), same packing as parameters
-        """
-        # Unpack parameters: last element is the bias
-        weights = parameters[:-1]
-        bias = parameters[-1]
-
-        # Forward pass, then loss and gradient
-        probs = self._compute_probs(instances, weights, bias)
-        loss = uf.logistic_loss(labels, probs)
-        grad_weights, grad_bias = self._compute_gradients(instances, labels, probs)
-
-        # Pack gradient in the same layout as the parameters
-        gradient = np.append(grad_weights, grad_bias)
-
-        return loss, gradient
-
     # ------------------------------------------------------------------
     # Prediction
     # ------------------------------------------------------------------
@@ -306,7 +309,7 @@ class BinomialLogisticRegression:
         Returns:
             labels: predicted class labels in {0, 1}, shape (num_instances,), dtype=int
         """
-        logits = self._compute_logits(instances)
+        logits = self._compute_logits(instances, self.weights, self.bias)
 
         # Apply decision rule: predict 1 if logit >= 0, else 0
         return np.where(logits >= 0, 1, 0)

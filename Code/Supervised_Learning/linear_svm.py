@@ -168,7 +168,7 @@ class LinearSVM:
         for _ in range(self.num_epochs):
             # Stochastic updates in random order
             for index in np.random.permutation(len(labels)):
-                self._backward(instances[index], labels[index])
+                self.backward(instances[index], labels[index])
 
             # Log the regularized hinge loss of this epoch
             self.loss_log.append(self._compute_loss(instances, labels))
@@ -179,7 +179,7 @@ class LinearSVM:
                 if loss_change < self.convergence_threshold:
                     break
 
-    def _backward(self, instance, label):
+    def backward(self, instance, label):
         """
         Backward pass: compute gradients on one instance and update parameters.
 

@@ -93,9 +93,24 @@ class MultinomialLogisticRegression:
         self.biases = np.zeros(num_classes, dtype=float)
 
     @staticmethod
+    def _compute_logits(instances, weights, biases):
+        """
+        Compute logits z_k = w_k · x + b_k with the given parameters.
+
+        Args:
+            instances: input instances, shape (num_instances, num_features)
+            weights: weight matrix, shape (num_features, num_classes)
+            biases: bias vector, shape (num_classes,)
+
+        Returns:
+            logits: raw scores, shape (num_instances, num_classes)
+        """
+        return instances @ weights + biases
+
+    @staticmethod
     def _compute_probs(instances, weights, biases):
         """
-        Compute P(y=k|x) = softmax(W^T x + b) for the given parameters.
+        Compute probabilities P(y=k|x) = softmax(W^T x + b) with the given parameters.
 
         Args:
             instances: instances of shape (num_instances, num_features)
@@ -107,18 +122,6 @@ class MultinomialLogisticRegression:
         """
         logits = instances @ weights + biases
         return uf.softmax(logits)
-
-    def _compute_logits(self, instances):
-        """
-        Compute raw scores (logits) z_k = w_k · x + b_k with current parameters.
-
-        Args:
-            instances: input instances, shape (num_instances, num_features)
-
-        Returns:
-            logits: raw scores, shape (num_instances, num_classes)
-        """
-        return instances @ self.weights + self.biases
 
     @staticmethod
     def _compute_gradients(instances, labels_onehot, probs):
@@ -143,6 +146,42 @@ class MultinomialLogisticRegression:
         grad_weights = -(instances.T @ errors) / len(instances)
         grad_biases = -np.mean(errors, axis=0)
         return grad_weights, grad_biases
+
+    def _compute_loss_and_gradients(self, parameters, instances, labels, labels_onehot):
+        """
+        Compute cross-entropy loss and its gradient for a packed parameter vector.
+
+        This is the objective function for scipy's minimize (with jac=True),
+        which expects (loss, gradient) to be returned together.
+
+        Args:
+            parameters: packed parameter vector [weights..., biases...],
+                shape (num_features * num_classes + num_classes,)
+            instances: training data, shape (num_instances, num_features)
+            labels: class labels, shape (num_instances,)
+            labels_onehot: one-hot labels, shape (num_instances, num_classes)
+
+        Returns:
+            tuple: (loss, gradient) where
+                - loss: average cross-entropy loss, a float
+                - gradient: same shape and packing as parameters
+        """
+        # Unpack parameters: the last num_classes elements are biases
+        weight_size = self.num_features * self.num_classes
+        weights = parameters[:weight_size].reshape(self.num_features, self.num_classes)
+        biases = parameters[weight_size:]
+
+        # Forward pass, then loss and gradient
+        probs = self._compute_probs(instances, weights, biases)
+        loss = uf.cross_entropy_loss(labels, probs)
+        grad_weights, grad_biases = self._compute_gradients(
+            instances, labels_onehot, probs
+        )
+
+        # Pack gradient in the same layout as the parameters
+        gradient = np.concatenate([grad_weights.flatten(), grad_biases])
+
+        return loss, gradient
 
     # ------------------------------------------------------------------
     # Gradient descent
@@ -180,7 +219,7 @@ class MultinomialLogisticRegression:
 
         for _ in range(self.num_iterations):
             # Backward pass: compute gradients and update parameters
-            self._backward(instances, labels_onehot, probs)
+            self.backward(instances, labels_onehot, probs)
 
             # Forward pass with updated parameters; log the new loss
             probs = self.forward(instances)
@@ -192,7 +231,7 @@ class MultinomialLogisticRegression:
                 if loss_change < self.convergence_threshold:
                     break
 
-    def _backward(self, instances, labels_onehot, probs):
+    def backward(self, instances, labels_onehot, probs):
         """
         Backward pass: compute gradients and update parameters (one GD step).
 
@@ -249,14 +288,14 @@ class MultinomialLogisticRegression:
 
         def log_loss(params):
             """Called by scipy once per iteration; record the current loss."""
-            loss, _ = self._compute_loss_and_gradient(
+            loss, _ = self._compute_loss_and_gradients(
                 params, instances, labels, labels_onehot
             )
             self.loss_log.append(loss)
 
         # Run BFGS optimization
         result = minimize(
-            fun=self._compute_loss_and_gradient,
+            fun=self._compute_loss_and_gradients,
             x0=initial_params,
             args=(instances, labels, labels_onehot),
             method="BFGS",
@@ -276,42 +315,6 @@ class MultinomialLogisticRegression:
         if not result.success:
             print(f"Warning: BFGS did not converge - {result.message}")
 
-    def _compute_loss_and_gradient(self, parameters, instances, labels, labels_onehot):
-        """
-        Compute cross-entropy loss and its gradient for a packed parameter vector.
-
-        This is the objective function for scipy's minimize (with jac=True),
-        which expects (loss, gradient) to be returned together.
-
-        Args:
-            parameters: packed parameter vector [weights..., biases...],
-                shape (num_features * num_classes + num_classes,)
-            instances: training data, shape (num_instances, num_features)
-            labels: class labels, shape (num_instances,)
-            labels_onehot: one-hot labels, shape (num_instances, num_classes)
-
-        Returns:
-            tuple: (loss, gradient) where
-                - loss: average cross-entropy loss, a float
-                - gradient: same shape and packing as parameters
-        """
-        # Unpack parameters: the last num_classes elements are biases
-        weight_size = self.num_features * self.num_classes
-        weights = parameters[:weight_size].reshape(self.num_features, self.num_classes)
-        biases = parameters[weight_size:]
-
-        # Forward pass, then loss and gradient
-        probs = self._compute_probs(instances, weights, biases)
-        loss = uf.cross_entropy_loss(labels, probs)
-        grad_weights, grad_biases = self._compute_gradients(
-            instances, labels_onehot, probs
-        )
-
-        # Pack gradient in the same layout as the parameters
-        gradient = np.concatenate([grad_weights.flatten(), grad_biases])
-
-        return loss, gradient
-
     # ------------------------------------------------------------------
     # Prediction
     # ------------------------------------------------------------------
@@ -327,7 +330,7 @@ class MultinomialLogisticRegression:
             labels: predicted class labels in [0, num_classes-1], shape (num_instances,), dtype=int
         """
         # Compute logits of all classes
-        logits = self._compute_logits(instances)
+        logits = self._compute_logits(instances, self.weights, self.biases)
 
         # Find the class with the highest logit for each instance
         return np.argmax(logits, axis=1)
@@ -343,7 +346,7 @@ class MultinomialLogisticRegression:
             probs: class probabilities, shape (num_instances, num_classes)
         """
         # Compute logits and apply softmax to get probabilities
-        logits = self._compute_logits(instances)
+        logits = self._compute_logits(instances, self.weights, self.biases)
         return uf.softmax(logits)
 
 
