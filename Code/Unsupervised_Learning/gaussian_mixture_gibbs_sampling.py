@@ -237,7 +237,7 @@ class GaussianMixtureGibbs:
             self._sample_assignments(samples)
             self._sample_parameters(samples)
 
-            # Score the new parameters with the likelihood and the prior
+            # Score the new parameters with the log-posterior (up to a constant)
             (
                 log_prior,
                 log_likelihood,

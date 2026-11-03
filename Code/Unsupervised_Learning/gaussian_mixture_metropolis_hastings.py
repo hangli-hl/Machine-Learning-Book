@@ -85,26 +85,23 @@ class GaussianMixtureMetropolis:
 
     Attributes:
         num_components: number of Gaussian components, a positive integer
-        num_iterations: total number of Metropolis-Hastings iterations, a positive
-            integer
-        burn_in: number of initial iterations to discard,
-            an integer with 0 <= burn_in < num_iterations
-        proposal_step: initial step size of the random walk on the means. If
-                None, it is set from the data as PROPOSAL_SCALE * standard_deviation
-                / sqrt(effective_num_samples * num_features)
         num_features: number of features, a positive integer
         coefficients: mixing coefficients, shape (num_components,)
         means: component means, shape (num_components, num_features)
         covariances: component covariances,
             shape (num_components, num_features, num_features)
-        logits: free logits of the last state of the chain,
-            shape (num_components - 1,)
+        logits: free logits of the last state of the chain, shape (num_components - 1,)
         assignments: component assignments of the training samples under the final
             parameters, shape (num_training_samples,)
         best_log_likelihood: highest log-likelihood found after burn-in, a float
         acceptance_rate: fraction of accepted proposals after burn-in, a float
-        mean_step, logit_step, covariance_relative_deviation: proposal scales of the
-            chain, tuned during burn-in and frozen afterwards
+        num_iterations: total number of Metropolis-Hastings iterations, a positive
+            integer
+        burn_in: number of initial iterations to discard,
+            an integer with 0 <= burn_in < num_iterations
+        proposal_step: initial step size of the random walk on the means. If
+            None, it is set from the data as PROPOSAL_SCALE * standard_deviation
+            / sqrt(effective_num_samples * num_features)
         log_likelihood_history: log-likelihood per recorded parameter vector,
             list of floats
         acceptance_rate_history: windowed acceptance rate per recorded parameter
@@ -112,7 +109,9 @@ class GaussianMixtureMetropolis:
         parameter_history: flattened parameters (means, covariances, coefficients)
             per recorded snapshot, list of 1D arrays. Entry t holds the
             parameters that produced log_likelihood_history[t] and
-            acceptance_rate_history[t].
+            acceptance_rate_history[t]
+        mean_step, logit_step, covariance_relative_deviation: proposal scales of the
+            chain, tuned during burn-in and frozen afterwards
     """
 
     def __init__(
@@ -206,9 +205,9 @@ class GaussianMixtureMetropolis:
             num_samples, self.num_components, replace=False
         )
         self.num_features = num_features
+        self.coefficients = np.full(self.num_components, 1 / self.num_components)
         self.means = samples[initial_indices]
         self.covariances = np.tile(np.eye(num_features), (self.num_components, 1, 1))
-        self.coefficients = np.full(self.num_components, 1 / self.num_components)
         self.logits = np.zeros(self.num_components - 1)
         self.assignments = None
         self.best_log_likelihood = None
@@ -216,6 +215,30 @@ class GaussianMixtureMetropolis:
         self.log_likelihood_history = []
         self.acceptance_rate_history = []
         self.parameter_history = []
+
+    def _record_parameters(self, log_likelihood, acceptance_rate):
+        """
+        Append the current parameters and their scores to the three histories.
+
+        All histories are appended together so that they stay the same length and
+        entry t of one always describes entry t of the others.
+
+        Args:
+            log_likelihood: log-likelihood under the current parameters, a float
+            acceptance_rate: windowed acceptance rate of the chain, a float
+        """
+        # concatenate() returns a copy, so later updates cannot modify the history
+        self.parameter_history.append(
+            np.concatenate(
+                [
+                    self.means.flatten(),
+                    self.covariances.flatten(),
+                    self.coefficients.flatten(),
+                ]
+            )
+        )
+        self.log_likelihood_history.append(log_likelihood)
+        self.acceptance_rate_history.append(acceptance_rate)
 
     def _init_proposal_scales(self, samples):
         """
@@ -281,30 +304,6 @@ class GaussianMixtureMetropolis:
             f"covariance_relative_deviation={self.covariance_relative_deviation:.4g}"
         )
 
-    def _record_parameters(self, log_likelihood, recent_acceptance_rate):
-        """
-        Append the current parameters and their scores to the three histories.
-
-        All histories are appended together so that they stay the same length and
-        entry t of one always describes entry t of the others.
-
-        Args:
-            log_likelihood: log-likelihood under the current parameters, a float
-            recent_acceptance_rate: windowed acceptance rate of the chain, a float
-        """
-        # concatenate() returns a copy, so later updates cannot modify the history
-        self.parameter_history.append(
-            np.concatenate(
-                [
-                    self.means.flatten(),
-                    self.covariances.flatten(),
-                    self.coefficients.flatten(),
-                ]
-            )
-        )
-        self.log_likelihood_history.append(log_likelihood)
-        self.acceptance_rate_history.append(recent_acceptance_rate)
-
     # ------------------------------------------------------------------
     # Training
     # ------------------------------------------------------------------
@@ -331,16 +330,12 @@ class GaussianMixtureMetropolis:
         num_accepts = 0
         recent_accepts = deque(maxlen=ACCEPT_WINDOW)
 
-        # Fall back to the initial parameters if no log-likelihood is ever better
+        # The first recorded point always becomes the best one
         best_log_likelihood = -np.inf
-        best_parameters = (
-            self.means.copy(),
-            self.covariances.copy(),
-            self.coefficients.copy(),
-        )
+        best_parameters = None
 
         current_log_likelihood = self._compute_log_likelihood(
-            samples, self.means, self.covariances, self.coefficients
+            samples, self.coefficients, self.means, self.covariances
         )
 
         for iteration in range(self.num_iterations):
@@ -352,15 +347,15 @@ class GaussianMixtureMetropolis:
 
             # Propose new parameters, then accept or reject them
             (
+                proposed_coefficients,
                 proposed_means,
                 proposed_covariances,
-                proposed_coefficients,
                 proposed_logits,
                 log_proposal_ratio,
             ) = self._propose_parameters()
 
             proposed_log_likelihood = self._compute_log_likelihood(
-                samples, proposed_means, proposed_covariances, proposed_coefficients
+                samples, proposed_coefficients, proposed_means, proposed_covariances
             )
 
             # log a = log L(θ*) - log L(θ) + log q(θ | θ*) - log q(θ* | θ)
@@ -370,9 +365,9 @@ class GaussianMixtureMetropolis:
 
             accepted = np.log(np.random.rand()) < log_acceptance_ratio
             if accepted:
+                self.coefficients = proposed_coefficients
                 self.means = proposed_means
                 self.covariances = proposed_covariances
-                self.coefficients = proposed_coefficients
                 self.logits = proposed_logits
                 current_log_likelihood = proposed_log_likelihood
                 num_accepts += 1
@@ -387,12 +382,13 @@ class GaussianMixtureMetropolis:
                 self._record_parameters(current_log_likelihood, recent_acceptance_rate)
 
                 # Keep track of the best parameters based on log-likelihood
-                if current_log_likelihood > best_log_likelihood:
+                if best_parameters is None or current_log_likelihood > best_log_likelihood:
                     best_log_likelihood = current_log_likelihood
                     best_parameters = (
+                        self.coefficients.copy(),
                         self.means.copy(),
                         self.covariances.copy(),
-                        self.coefficients.copy(),
+                        self.logits.copy(),
                     )
 
             if iteration % LOG_INTERVAL == 0:
@@ -403,7 +399,10 @@ class GaussianMixtureMetropolis:
                 )
 
         # Keep the parameters with the highest log-likelihood after burn-in
-        self.means, self.covariances, self.coefficients = best_parameters
+        self.coefficients = best_parameters[0]
+        self.means = best_parameters[1]
+        self.covariances = best_parameters[2]
+        self.logits = best_parameters[3]
         self.best_log_likelihood = best_log_likelihood
         self.acceptance_rate = num_accepts / (self.num_iterations - self.burn_in)
         self.assignments = self.predict(samples)
@@ -413,9 +412,9 @@ class GaussianMixtureMetropolis:
         Propose new parameters from the current ones.
 
         Returns:
+            proposed_coefficients: shape (num_components,)
             proposed_means: shape (num_components, num_features)
             proposed_covariances: shape (num_components, num_features, num_features)
-            proposed_coefficients: shape (num_components,)
             proposed_logits: shape (num_components - 1,)
             log_proposal_ratio: log q(current | proposed) - log q(proposed | current)
         """
@@ -462,14 +461,14 @@ class GaussianMixtureMetropolis:
             ) - invwishart.logpdf(proposed_covariance, df=nu, scale=scale_forward)
 
         return (
+            proposed_coefficients,
             proposed_means,
             proposed_covariances,
-            proposed_coefficients,
             proposed_logits,
             log_proposal_ratio,
         )
 
-    def _compute_log_likelihood(self, samples, means, covariances, coefficients):
+    def _compute_log_likelihood(self, samples, coefficients, means, covariances):
         """
         Compute the total log-likelihood in log-space for the given parameters.
 
@@ -477,25 +476,17 @@ class GaussianMixtureMetropolis:
 
         Args:
             samples: input samples, shape (num_samples, num_features)
+            coefficients: shape (num_components,)
             means: shape (num_components, num_features)
             covariances: shape (num_components, num_features, num_features)
-            coefficients: shape (num_components,)
 
         Returns:
             log_likelihood: total log-likelihood, a float
         """
-        log_weighted = np.zeros((samples.shape[0], self.num_components))
-
-        for j in range(self.num_components):
-            log_density = multivariate_normal.logpdf(
-                samples,
-                mean=means[j],
-                cov=covariances[j],
-                allow_singular=True,
-            )
-            log_weighted[:, j] = np.log(max(coefficients[j], EPS)) + log_density
-
-        return float(np.sum(logsumexp(log_weighted, axis=1)))
+        log_weighted_densities = self._compute_log_weighted_densities(
+            samples, coefficients, means, covariances
+        )
+        return float(np.sum(logsumexp(log_weighted_densities, axis=1)))
 
     # ------------------------------------------------------------------
     # Prediction
@@ -516,9 +507,12 @@ class GaussianMixtureMetropolis:
         """
         # The posterior is the weighted density divided by a per-sample constant,
         # so both have the same argmax
-        return np.argmax(self._compute_log_weighted_densities(samples), axis=1)
+        log_weighted_densities = self._compute_log_weighted_densities(
+            samples, self.coefficients, self.means, self.covariances
+        )
+        return np.argmax(log_weighted_densities, axis=1)
 
-    def _compute_log_weighted_densities(self, samples):
+    def _compute_log_weighted_densities(self, samples, coefficients, means, covariances):
         """
         Compute the log weighted densities of samples under all components.
 
@@ -526,21 +520,25 @@ class GaussianMixtureMetropolis:
 
         Args:
             samples: input samples, shape (num_samples, num_features)
+            means: shape (num_components, num_features)
+            covariances: shape (num_components, num_features, num_features)
+            coefficients: shape (num_components,)
 
         Returns:
             log_weighted_densities: Entry[i, j] is log( π_j * N(x_i | μ_j, Σ_j) ),
                 shape (num_samples, num_components)
         """
-        samples = np.asarray(samples, dtype=float)
         log_weighted_densities = np.zeros((samples.shape[0], self.num_components))
 
+        # log(0) = -inf is valid here: the component then has zero weight
         with np.errstate(divide="ignore"):
-            log_coefficients = np.log(self.coefficients)
+            log_coefficients = np.log(coefficients)
         for j in range(self.num_components):
             log_density = multivariate_normal.logpdf(
                 samples,
-                mean=self.means[j],
-                cov=self.covariances[j],
+                mean=means[j],
+                cov=covariances[j],
+                allow_singular=True,
             )
             log_weighted_densities[:, j] = log_coefficients[j] + log_density
 
