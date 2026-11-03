@@ -14,25 +14,23 @@ from sklearn.metrics import adjusted_rand_score
 import data_creators as dc
 import plot_functions as pf
 
+# Default number of iterations for the Metropolis-Hastings sampler
+DEFAULT_NUM_ITERATIONS = 20000
+# Default number of initial iterations to discard (burn-in)
+DEFAULT_BURN_IN = 10000
 # Small positive number to avoid division by zero or log(0)
 EPS = 1e-6
-
 # Number of iterations between two progress messages during training
 LOG_INTERVAL = 1000
-
 # Optimal scaling factor of the random-walk proposals (Roberts et al., 1997)
 PROPOSAL_SCALE = 2.38
-
 # Number of recent iterations used for the windowed acceptance rate.
 # ACCEPT_WINDOW >= ADAPT_INTERVAL
 ACCEPT_WINDOW = 200
-
 # Number of iterations between two adjustments of the proposal scales (burn-in only)
 ADAPT_INTERVAL = 50
-
 # Acceptance rate the adaptation aims for
 TARGET_ACCEPT_RATE = 0.234
-
 # Upper bound of the relative deviation of the covariance proposal.
 # ν at least D + 3 + 2 / MAX_COV_REL_SD²
 MAX_COV_REL_SD = 0.9
@@ -115,7 +113,11 @@ class GaussianMixtureMetropolis:
     """
 
     def __init__(
-        self, num_components, num_iterations=20000, burn_in=10000, proposal_step=None
+        self,
+        num_components,
+        num_iterations=DEFAULT_NUM_ITERATIONS,
+        burn_in=DEFAULT_BURN_IN,
+        proposal_step=None,
     ):
         """
         Initialize a Gaussian mixture model.
@@ -463,7 +465,8 @@ class GaussianMixtureMetropolis:
                 self._record_parameters(current_log_likelihood, recent_acceptance_rate)
 
                 # Keep track of the best parameters based on log-likelihood
-                if (best_parameters is None
+                if (
+                    best_parameters is None
                     or current_log_likelihood > best_log_likelihood
                 ):
                     best_log_likelihood = current_log_likelihood
@@ -579,13 +582,13 @@ if __name__ == "__main__":
     parser.add_argument(
         "--num-iterations",
         type=int,
-        default=20000,
+        default=DEFAULT_NUM_ITERATIONS,
         help="Total number of Metropolis-Hastings sampling iterations",
     )
     parser.add_argument(
         "--burn-in",
         type=int,
-        default=10000,
+        default=DEFAULT_BURN_IN,
         help="Number of initial iterations to discard (burn-in period), "
         "must be smaller than the number of iterations",
     )

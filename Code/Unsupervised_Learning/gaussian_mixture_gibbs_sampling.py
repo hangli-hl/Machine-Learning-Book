@@ -13,9 +13,12 @@ from sklearn.metrics import adjusted_rand_score
 import data_creators as dc
 import plot_functions as pf
 
+# Default number of iterations for the Gibbs sampler
+DEFAULT_NUM_ITERATIONS = 5000
+# Default number of initial iterations to discard (burn-in)
+DEFAULT_BURN_IN = 1000
 # Lower bound for the mixing coefficients inside logarithms
 EPS = 1e-12
-
 # Number of iterations between two progress messages during training
 LOG_INTERVAL = 500
 
@@ -82,7 +85,12 @@ class GaussianMixtureGibbs:
             once the number of features is known
     """
 
-    def __init__(self, num_components, num_iterations=5000, burn_in=1000):
+    def __init__(
+        self,
+        num_components,
+        num_iterations=DEFAULT_NUM_ITERATIONS,
+        burn_in=DEFAULT_BURN_IN,
+    ):
         """
         Initialize a Gaussian mixture model.
 
@@ -491,13 +499,13 @@ if __name__ == "__main__":
     parser.add_argument(
         "--num-iterations",
         type=int,
-        default=5000,
+        default=DEFAULT_NUM_ITERATIONS,
         help="Total number of Gibbs sampling iterations",
     )
     parser.add_argument(
         "--burn-in",
         type=int,
-        default=1000,
+        default=DEFAULT_BURN_IN,
         help="Number of initial iterations to discard (burn-in period), "
         "must be smaller than the number of iterations",
     )

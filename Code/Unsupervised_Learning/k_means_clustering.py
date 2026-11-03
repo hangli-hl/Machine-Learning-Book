@@ -11,6 +11,12 @@ from sklearn.metrics import adjusted_rand_score
 import data_creators as dc
 import plot_functions as pf
 
+# Default number of iterations for K-Means
+DEFAULT_NUM_ITERATIONS = 100
+# Default convergence threshold for K-Means
+DEFAULT_CONVERGENCE_THRESHOLD = 1e-6
+
+
 ##############################################################################
 #                           K-MEANS CLUSTERING CLASS
 ##############################################################################
@@ -51,7 +57,11 @@ class KMeansClustering:
             trajectory plot.
     """
 
-    def __init__(self, num_clusters, num_iterations=100, convergence_threshold=1e-6):
+    def __init__(self, 
+                 num_clusters, 
+                 num_iterations=DEFAULT_NUM_ITERATIONS, 
+                 convergence_threshold=DEFAULT_CONVERGENCE_THRESHOLD
+                 ):
         """
         Initialize a K-Means clustering model.
 
@@ -346,13 +356,13 @@ if __name__ == "__main__":
     parser.add_argument(
         "--num-iterations",
         type=int,
-        default=100,
+        default=DEFAULT_NUM_ITERATIONS,
         help="Maximum number of K-Means iterations",
     )
     parser.add_argument(
         "--convergence-threshold",
         type=float,
-        default=1e-6,
+        default=DEFAULT_CONVERGENCE_THRESHOLD,
         help="Stop once the squared Frobenius norm of the centroid update drops "
         "to this value or below",
     )

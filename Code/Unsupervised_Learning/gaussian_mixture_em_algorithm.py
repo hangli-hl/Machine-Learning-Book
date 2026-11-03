@@ -13,6 +13,10 @@ from sklearn.metrics import adjusted_rand_score
 import data_creators as dc
 import plot_functions as pf
 
+# Default number of iterations for the EM algorithm
+DEFAULT_NUM_ITERATIONS = 1000
+# Default threshold for the per-sample log-likelihood change
+DEFAULT_CONVERGENCE_THRESHOLD = 1e-4
 # Total responsibility below this value counts as "component has no samples"
 EPS = 1e-6
 # Small positive number to avoid singular covariance matrices
@@ -70,7 +74,12 @@ class GaussianMixtureEM:
             drift apart in the trajectory plot.
     """
 
-    def __init__(self, num_components, num_iterations=1000, convergence_threshold=1e-4):
+    def __init__(
+        self,
+        num_components,
+        num_iterations=DEFAULT_NUM_ITERATIONS,
+        convergence_threshold=DEFAULT_CONVERGENCE_THRESHOLD,
+    ):
         """
         Initialize a Gaussian mixture model.
 
@@ -361,13 +370,13 @@ if __name__ == "__main__":
     parser.add_argument(
         "--num-iterations",
         type=int,
-        default=1000,
+        default=DEFAULT_NUM_ITERATIONS,
         help="Maximum number of EM iterations",
     )
     parser.add_argument(
         "--convergence-threshold",
         type=float,
-        default=1e-4,
+        default=DEFAULT_CONVERGENCE_THRESHOLD,
         help="Stop once the change of the log-likelihood per sample drops "
         "to this value or below",
     )
