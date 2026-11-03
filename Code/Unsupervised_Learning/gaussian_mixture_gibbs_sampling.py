@@ -290,7 +290,7 @@ class GaussianMixtureGibbs:
         Args:
             samples: training samples, shape (num_samples, num_features)
         """
-        log_weighted = self.forward(samples)
+        log_weighted = self._compute_log_weighted_densities(samples)
         probabilities = np.exp(
             log_weighted - logsumexp(log_weighted, axis=1, keepdims=True)
         )
@@ -412,7 +412,7 @@ class GaussianMixtureGibbs:
             log_prior: log-prior of the current parameters, a float
             log_posterior: log_likelihood + log_prior, a float
         """
-        log_likelihood = float(np.sum(logsumexp(self.forward(samples), axis=1)))
+        log_likelihood = float(np.sum(logsumexp(self._compute_log_weighted_densities(samples), axis=1)))
         log_prior = self._compute_log_prior()
         return log_likelihood, log_prior, log_likelihood + log_prior
 
@@ -435,12 +435,11 @@ class GaussianMixtureGibbs:
         """
         # The posterior is the weighted density divided by a per-sample constant,
         # so both have the same argmax
-        return np.argmax(self.forward(samples), axis=1)
+        return np.argmax(self._compute_log_weighted_densities(samples), axis=1)
 
-    def forward(self, samples):
+    def _compute_log_weighted_densities(self, samples):
         """
-        Forward pass: compute the log weighted densities of samples under all
-        components.
+        Compute the log weighted densities of samples under all components.
 
             log( π_j * N(x_i | μ_j, Σ_j) ) = log(π_j) + log(N(x_i | μ_j, Σ_j))
 

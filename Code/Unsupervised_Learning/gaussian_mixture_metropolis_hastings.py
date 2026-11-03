@@ -516,12 +516,11 @@ class GaussianMixtureMetropolis:
         """
         # The posterior is the weighted density divided by a per-sample constant,
         # so both have the same argmax
-        return np.argmax(self.forward(samples), axis=1)
+        return np.argmax(self._compute_log_weighted_densities(samples), axis=1)
 
-    def forward(self, samples):
+    def _compute_log_weighted_densities(self, samples):
         """
-        Forward pass: compute the log weighted densities of samples under all
-        components with the current parameters.
+        Compute the log weighted densities of samples under all components.
 
             log( π_j * N(x_i | μ_j, Σ_j) ) = log(π_j) + log(N(x_i | μ_j, Σ_j))
 
