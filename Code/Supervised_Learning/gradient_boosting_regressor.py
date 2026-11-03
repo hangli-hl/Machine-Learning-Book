@@ -13,6 +13,18 @@ import plot_functions as pf
 
 from regression_tree import RegressionTree
 
+# Default number of base learners (regression trees) in the ensemble
+DEFAULT_NUM_LEARNERS = 100
+# Default shrinkage coefficient of each learner (0 < shrinkage <= 1)
+DEFAULT_SHRINKAGE = 0.1
+# Default maximum depth of the regression tree
+DEFAULT_MAX_TREE_DEPTH = 3
+# Default minimum number of instances required to split a node
+DEFAULT_MIN_SAMPLE_SPLIT = 5
+# Default convergence threshold for training loss change between consecutive rounds
+DEFAULT_CONVERGENCE_THRESHOLD = 1e-6
+
+
 ##############################################################################
 #                    GRADIENT BOOSTING REGRESSOR CLASS
 ##############################################################################
@@ -49,11 +61,11 @@ class GradientBoostingRegressor:
 
     def __init__(
         self,
-        num_learners,
-        shrinkage,
-        max_tree_depth=2,
-        min_sample_split=5,
-        convergence_threshold=None,
+        num_learners=DEFAULT_NUM_LEARNERS,
+        shrinkage=DEFAULT_SHRINKAGE,
+        max_tree_depth=DEFAULT_MAX_TREE_DEPTH,
+        min_sample_split=DEFAULT_MIN_SAMPLE_SPLIT,
+        convergence_threshold=DEFAULT_CONVERGENCE_THRESHOLD,
     ):
         """
         Initialize a Gradient Boosting Regressor for regression.
@@ -233,31 +245,31 @@ if __name__ == "__main__":
     parser.add_argument(
         "--num-learners",
         type=int,
-        default=100,
+        default=DEFAULT_NUM_LEARNERS,
         help="Number of base learners (regression trees) in the ensemble",
     )
     parser.add_argument(
         "--shrinkage",
         type=float,
-        default=0.1,
+        default=DEFAULT_SHRINKAGE,
         help="Shrinkage coefficient of each learner (0 < shrinkage <= 1)",
     )
     parser.add_argument(
         "--max-tree-depth",
         type=int,
-        default=2,
+        default=DEFAULT_MAX_TREE_DEPTH,
         help="Maximum depth of each base regression tree (1 = regression stump)",
     )
     parser.add_argument(
         "--min-sample-split",
         type=int,
-        default=5,
+        default=DEFAULT_MIN_SAMPLE_SPLIT,
         help="Minimum number of instances required to split a node of a base tree",
     )
     parser.add_argument(
         "--convergence-threshold",
         type=float,
-        default=None,
+        default=DEFAULT_CONVERGENCE_THRESHOLD,
         help="Stop training when the absolute change in training loss "
         "between consecutive rounds is below this value",
     )

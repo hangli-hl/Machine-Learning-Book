@@ -12,6 +12,16 @@ import data_creators as dc
 import utility_functions as uf
 import plot_functions as pf
 
+# Default number of iterations for gradient descent
+DEFAULT_NUM_ITERATIONS_GD = 10000
+# Default number of iterations for BFGS
+DEFAULT_NUM_ITERATIONS_BFGS = 100
+# Default learning rate for gradient descent
+DEFAULT_LEARNING_RATE = 0.01
+# Default convergence threshold for gradient descent
+DEFAULT_CONVERGENCE_THRESHOLD = 1e-6
+
+
 ##############################################################################
 #                  MULTINOMIAL LOGISTIC REGRESSION CLASS
 ##############################################################################
@@ -49,7 +59,12 @@ class MultinomialLogisticRegression:
             len = number of iterations actually performed
     """
 
-    def __init__(self, num_iterations, learning_rate, convergence_threshold=None):
+    def __init__(
+        self,
+        num_iterations=DEFAULT_NUM_ITERATIONS_GD,
+        learning_rate=DEFAULT_LEARNING_RATE,
+        convergence_threshold=DEFAULT_CONVERGENCE_THRESHOLD,
+    ):
         """
         Initialize a Multinomial Logistic Regression model.
         """
@@ -378,21 +393,21 @@ if __name__ == "__main__":
         help="Optimization algorithm: GD (gradient descent) or BFGS (quasi-Newton)",
     )
     parser.add_argument(
-        "--learning-rate",
-        type=float,
-        default=0.01,
-        help="Learning rate only for gradient descent",
-    )
-    parser.add_argument(
         "--num-iterations",
         type=int,
-        default=None,
+        default=DEFAULT_NUM_ITERATIONS_GD,
         help="Number of training iterations (default: 10000 for GD, 100 for BFGS)",
+    )
+    parser.add_argument(
+        "--learning-rate",
+        type=float,
+        default=DEFAULT_LEARNING_RATE,
+        help="Learning rate only for gradient descent",
     )
     parser.add_argument(
         "--convergence-threshold",
         type=float,
-        default=None,
+        default=DEFAULT_CONVERGENCE_THRESHOLD,
         help="Threshold for convergence in terms of change in loss between consecutive iterations (only applies to GD)",
     )
     args = parser.parse_args()
@@ -418,7 +433,9 @@ if __name__ == "__main__":
     num_iterations = (
         args.num_iterations
         if args.num_iterations is not None
-        else {"gd": 10000, "bfgs": 100}[args.algorithm]
+        else {"gd": DEFAULT_NUM_ITERATIONS_GD, "bfgs": DEFAULT_NUM_ITERATIONS_BFGS}[
+            args.algorithm
+        ]
     )
 
     # Initialize multinomial logistic regression model

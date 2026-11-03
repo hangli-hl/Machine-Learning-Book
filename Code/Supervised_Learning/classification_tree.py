@@ -11,6 +11,12 @@ import data_creators as dc
 import utility_functions as uf
 import plot_functions as pf
 
+# Default maximum depth of the classification tree
+DEFAULT_MAX_TREE_DEPTH = 3
+# Default minimum number of instances required to split a node
+DEFAULT_MIN_SAMPLE_SPLIT = 5
+
+
 ##############################################################################
 #                          CLASSIFICATION NODE CLASS
 ##############################################################################
@@ -77,7 +83,11 @@ class ClassificationTree:
         min_sample_split: minimum instances required to split a node, a positive integer
     """
 
-    def __init__(self, max_tree_depth=3, min_sample_split=5):
+    def __init__(
+        self,
+        max_tree_depth=DEFAULT_MAX_TREE_DEPTH,
+        min_sample_split=DEFAULT_MIN_SAMPLE_SPLIT,
+    ):
         """
         Initialize a Classification Tree.
         """
@@ -358,12 +368,15 @@ if __name__ == "__main__":
         "circular patterns) or moons (synthetic 2D, two half moons)",
     )
     parser.add_argument(
-        "--max-tree-depth", type=int, default=3, help="Maximum depth of the tree"
+        "--max-tree-depth",
+        type=int,
+        default=DEFAULT_MAX_TREE_DEPTH,
+        help="Maximum depth of the tree",
     )
     parser.add_argument(
         "--min-sample-split",
         type=int,
-        default=5,
+        default=DEFAULT_MIN_SAMPLE_SPLIT,
         help="Minimum number of instances required to split a node",
     )
     args = parser.parse_args()

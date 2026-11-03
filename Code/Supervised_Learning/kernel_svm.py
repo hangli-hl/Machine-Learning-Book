@@ -14,7 +14,6 @@ import plot_functions as pf
 
 # Tolerance on α for identifying (margin) support vectors
 SV_EPS = 1e-6
-
 # Maximum number of iterations of the SLSQP solver
 MAX_ITERATIONS = 1000
 

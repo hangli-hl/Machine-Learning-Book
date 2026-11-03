@@ -11,6 +11,14 @@ import data_creators as dc
 import utility_functions as uf
 import plot_functions as pf
 
+# Default number of epochs for training
+DEFAULT_NUM_EPOCHS = 100
+# Default learning rate for online updates
+DEFAULT_LEARNING_RATE = 0.1
+# Default convergence threshold for training error rate
+DEFAULT_CONVERGENCE_THRESHOLD = 1e-6
+
+
 ##############################################################################
 #                              PERCEPTRON CLASS
 ##############################################################################
@@ -46,7 +54,12 @@ class Perceptron:
             len = number of epochs actually performed
     """
 
-    def __init__(self, num_epochs, learning_rate, convergence_threshold=None):
+    def __init__(
+        self,
+        num_epochs=DEFAULT_NUM_EPOCHS,
+        learning_rate=DEFAULT_LEARNING_RATE,
+        convergence_threshold=DEFAULT_CONVERGENCE_THRESHOLD,
+    ):
         """
         Initialize a Perceptron.
         """
@@ -242,19 +255,19 @@ if __name__ == "__main__":
     parser.add_argument(
         "--num-epochs",
         type=int,
-        default=100,
+        default=DEFAULT_NUM_EPOCHS,
         help="Number of training epochs",
     )
     parser.add_argument(
         "--learning-rate",
         type=float,
-        default=0.1,
+        default=DEFAULT_LEARNING_RATE,
         help="Learning rate for online updates",
     )
     parser.add_argument(
         "--convergence-threshold",
         type=float,
-        default=None,
+        default=DEFAULT_CONVERGENCE_THRESHOLD,
         help="Threshold for convergence in terms of training error in an epoch",
     )
     args = parser.parse_args()

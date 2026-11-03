@@ -13,6 +13,17 @@ import plot_functions as pf
 
 from classification_tree import ClassificationTree
 
+# Default number of base learners (classification trees) in the ensemble
+DEFAULT_NUM_LEARNERS = 100
+# Default maximum depth of each base classification tree
+DEFAULT_MAX_TREE_DEPTH = 3
+# Default minimum number of instances required to split a node of a base tree
+DEFAULT_MIN_SAMPLE_SPLIT = 5
+# Default convergence threshold: stop training when the ensemble's
+# training error rate is below this value
+DEFAULT_CONVERGENCE_THRESHOLD = 1e-6
+
+
 ##############################################################################
 #                              ADABOOST CLASS
 ##############################################################################
@@ -44,10 +55,10 @@ class AdaBoost:
 
     def __init__(
         self,
-        num_learners,
-        max_tree_depth=2,
-        min_sample_split=5,
-        convergence_threshold=None,
+        num_learners=DEFAULT_NUM_LEARNERS,
+        max_tree_depth=DEFAULT_MAX_TREE_DEPTH,
+        min_sample_split=DEFAULT_MIN_SAMPLE_SPLIT,
+        convergence_threshold=DEFAULT_CONVERGENCE_THRESHOLD,
     ):
         """
         Initialize an AdaBoost model.
@@ -312,19 +323,19 @@ if __name__ == "__main__":
     parser.add_argument(
         "--num-learners",
         type=int,
-        default=100,
+        default=DEFAULT_NUM_LEARNERS,
         help="Number of base learners (classification trees) in the ensemble",
     )
     parser.add_argument(
         "--max-tree-depth",
         type=int,
-        default=2,
+        default=DEFAULT_MAX_TREE_DEPTH,
         help="Maximum depth of each base classification tree (1 = classification stump)",
     )
     parser.add_argument(
         "--min-sample-split",
         type=int,
-        default=5,
+        default=DEFAULT_MIN_SAMPLE_SPLIT,
         help="Minimum number of instances required to split a node of a base tree",
     )
     parser.add_argument(

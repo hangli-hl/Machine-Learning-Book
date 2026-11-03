@@ -11,6 +11,16 @@ import data_creators as dc
 import utility_functions as uf
 import plot_functions as pf
 
+# Default regularization coefficient
+DEFAULT_REGULARIZATION = 0.01
+# Default number of epochs for training
+DEFAULT_NUM_EPOCHS = 100
+# Default learning rate for SGD
+DEFAULT_LEARNING_RATE = 0.01
+# Default convergence threshold for training loss
+DEFAULT_CONVERGENCE_THRESHOLD = 1e-6
+
+
 ##############################################################################
 #                              LINEAR SVM CLASS
 ##############################################################################
@@ -46,7 +56,11 @@ class LinearSVM:
     """
 
     def __init__(
-        self, regularization, num_epochs, learning_rate, convergence_threshold=None
+        self,
+        regularization=DEFAULT_REGULARIZATION,
+        num_epochs=DEFAULT_NUM_EPOCHS,
+        learning_rate=DEFAULT_LEARNING_RATE,
+        convergence_threshold=DEFAULT_CONVERGENCE_THRESHOLD,
     ):
         """
         Initialize a Linear SVM.
@@ -253,24 +267,27 @@ if __name__ == "__main__":
         "or moons (synthetic 2D, two half moons)",
     )
     parser.add_argument(
-        "--regularization", type=float, default=0.01, help="Regularization coefficient"
+        "--regularization",
+        type=float,
+        default=DEFAULT_REGULARIZATION,
+        help="Regularization coefficient",
     )
     parser.add_argument(
         "--learning-rate",
         type=float,
-        default=0.01,
+        default=DEFAULT_LEARNING_RATE,
         help="Learning rate for SGD",
     )
     parser.add_argument(
         "--num-epochs",
         type=int,
-        default=100,
+        default=DEFAULT_NUM_EPOCHS,
         help="Number of training epochs",
     )
     parser.add_argument(
         "--convergence-threshold",
         type=float,
-        default=None,
+        default=DEFAULT_CONVERGENCE_THRESHOLD,
         help="Threshold for convergence in terms of change in loss between consecutive epochs",
     )
     args = parser.parse_args()

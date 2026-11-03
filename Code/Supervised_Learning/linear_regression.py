@@ -11,6 +11,14 @@ import data_creators as dc
 import utility_functions as uf
 import plot_functions as pf
 
+# Default number of iterations for gradient descent
+DEFAULT_NUM_ITERATIONS = 10000
+# Default learning rate for gradient descent
+DEFAULT_LEARNING_RATE = 0.1
+# Default convergence threshold for gradient descent
+DEFAULT_CONVERGENCE_THRESHOLD = 1e-6
+
+
 ##############################################################################
 #                           LINEAR REGRESSION CLASS
 ##############################################################################
@@ -46,7 +54,12 @@ class LinearRegression:
             len = number of iterations actually performed
     """
 
-    def __init__(self, num_iterations, learning_rate, convergence_threshold=None):
+    def __init__(
+        self,
+        num_iterations=DEFAULT_NUM_ITERATIONS,
+        learning_rate=DEFAULT_LEARNING_RATE,
+        convergence_threshold=DEFAULT_CONVERGENCE_THRESHOLD,
+    ):
         """
         Initialize a Linear Regression model.
         """
@@ -245,19 +258,19 @@ if __name__ == "__main__":
     parser.add_argument(
         "--num-iterations",
         type=int,
-        default=10000,
+        default=DEFAULT_NUM_ITERATIONS,
         help="Number of training iterations (GD only)",
     )
     parser.add_argument(
         "--learning-rate",
         type=float,
-        default=0.1,
+        default=DEFAULT_LEARNING_RATE,
         help="Learning rate for gradient descent (GD only)",
     )
     parser.add_argument(
         "--convergence-threshold",
         type=float,
-        default=None,
+        default=DEFAULT_CONVERGENCE_THRESHOLD,
         help="Threshold for convergence in terms of change in MSE between consecutive iterations (GD only)",
     )
     args = parser.parse_args()

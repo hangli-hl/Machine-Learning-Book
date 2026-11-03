@@ -12,6 +12,10 @@ import data_creators as dc
 import utility_functions as uf
 import plot_functions as pf
 
+# Default number of neighbors (k) used for the majority vote
+DEFAULT_NUM_NEIGHBORS = 1
+
+
 ##############################################################################
 #                                KD NODE CLASS
 ##############################################################################
@@ -68,7 +72,7 @@ class KNearestNeighborsClassifier:
         num_neighbors: number of neighbors used for the majority vote (k), a positive integer
     """
 
-    def __init__(self, num_neighbors=1):
+    def __init__(self, num_neighbors=DEFAULT_NUM_NEIGHBORS):
         """
         Initialize a K Nearest Neighbors Classifier.
         """
@@ -385,7 +389,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--num-neighbors",
         type=int,
-        default=1,
+        default=DEFAULT_NUM_NEIGHBORS,
         help="Number of nearest neighbors (k) used for the majority vote, "
         "an odd value is recommended to avoid ties",
     )
