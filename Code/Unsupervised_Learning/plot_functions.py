@@ -662,20 +662,20 @@ def visualize_parameter_space_em(model, file_name):
 
 def visualize_parameter_space_gs(model, file_name):
     """
-    Visualize the Gibbs sampling parameter trajectory, colored by the log-likelihood.
+    Visualize the Gibbs sampling parameter trajectory, colored by the log-posterior.
 
     The history is thinned, and the snapshots start after burn-in.
 
     Args:
-        model: trained Gaussian Mixture Model with parameter_history and log_likelihood_history
+        model: trained Gaussian Mixture Model with parameter_history and log_posterior_history
         file_name: file name for saving the plot
     """
     visualize_parameter_space(
         model.parameter_history,
-        model.log_likelihood_history,
+        model.log_posterior_history,
         file_name=file_name,
-        value_label="log-likelihood",
-        value_symbol="LL",
+        value_label="log-posterior",
+        value_symbol="LP",
         thin=TRAJECTORY_THIN,
         after_burn_in=True,
         higher_is_better=True,

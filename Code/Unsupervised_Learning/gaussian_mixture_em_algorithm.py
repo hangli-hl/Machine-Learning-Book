@@ -313,7 +313,7 @@ class GaussianMixtureEM:
             samples: input samples, shape (num_samples, num_features)
 
         Returns:
-            log_weighted_densities: log_weighted[i, j] = log( π_j * N(x_i | μ_j, Σ_j) ),
+            log_weighted_densities: Entry[i, j] is log( π_j * N(x_i | μ_j, Σ_j) ),
                 shape (num_samples, num_components)
         """
         log_weighted_densities = np.zeros((samples.shape[0], self.num_components))

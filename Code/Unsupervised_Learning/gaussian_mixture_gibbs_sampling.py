@@ -13,8 +13,8 @@ from sklearn.metrics import adjusted_rand_score
 import data_creators as dc
 import plot_functions as pf
 
-# Small positive number to avoid division by zero or log(0)
-EPS = 1e-6
+# Lower bound for the mixing coefficients inside logarithms
+EPS = 1e-12
 
 # Number of iterations between two progress messages during training
 LOG_INTERVAL = 500
@@ -60,9 +60,6 @@ class GaussianMixtureGibbs:
 
     Attributes:
         num_components: number of Gaussian components, a positive integer
-        num_iterations: total number of Gibbs sampling iterations, a positive integer
-        burn_in: number of initial iterations to discard,
-            an integer with 0 <= burn_in < num_iterations
         num_features: number of features, a positive integer
         coefficients: mixing coefficients, shape (num_components,)
         means: component means, shape (num_components, num_features)
@@ -73,13 +70,14 @@ class GaussianMixtureGibbs:
             sampled assignments of the current iteration.
         best_log_posterior: highest log-posterior (up to a constant) found after
             burn-in, a float
-        log_likelihood_history: log-likelihood per recorded parameter vector,
-            list of floats
+        num_iterations: total number of Gibbs sampling iterations, a positive integer
+        burn_in: number of initial iterations to discard, an integer
+            with 0 <= burn_in < num_iterations
         log_posterior_history: log-posterior (up to a constant) per recorded
             parameter vector, list of floats
-        parameter_history: flattened parameters (means, covariances, coefficients)
+        parameter_history: flattened parameters (coefficients, means, covariances)
             per recorded snapshot, list of 1D arrays. Entry t holds the parameters
-            that produced log_likelihood_history[t] and log_posterior_history[t]
+            that produced log_posterior_history[t]
         alpha, mu_0, kappa_0, psi_0, nu_0: prior hyperparameters, set in train()
             once the number of features is known
     """
@@ -114,7 +112,6 @@ class GaussianMixtureGibbs:
         self.covariances = None
         self.assignments = None
         self.best_log_posterior = None
-        self.log_likelihood_history = []
         self.log_posterior_history = []
         self.parameter_history = []
 
@@ -155,20 +152,6 @@ class GaussianMixtureGibbs:
             )
         return samples
 
-    def _init_priors(self, num_features):
-        """
-        Set weakly informative prior hyperparameters, which assume roughly centered and
-        unit-scale features.
-
-        Args:
-            num_features: number of features, a positive integer
-        """
-        self.alpha = np.ones(self.num_components)
-        self.mu_0 = np.zeros(num_features)
-        self.kappa_0 = 1.0
-        self.psi_0 = np.eye(num_features)
-        self.nu_0 = num_features + 2
-
     def _init_parameters(self, samples):
         """
         Initialize the means with num_components distinct random samples, the
@@ -183,25 +166,29 @@ class GaussianMixtureGibbs:
             num_samples, self.num_components, replace=False
         )
         self.num_features = num_features
-        self._init_priors(num_features)
+        self.coefficients = np.full(self.num_components, 1.0 / self.num_components)
         self.means = samples[initial_indices]
         self.covariances = np.tile(np.eye(num_features), (self.num_components, 1, 1))
-        self.coefficients = np.full(self.num_components, 1 / self.num_components)
         self.assignments = None
         self.best_log_posterior = None
-        self.log_likelihood_history = []
         self.log_posterior_history = []
         self.parameter_history = []
 
-    def _record_parameters(self, log_likelihood, log_posterior):
-        """
-        Append the current parameters and their scores to the three histories.
+        # Initialize the prior hyperparameters once the number of features is known
+        self.alpha = np.ones(self.num_components)
+        self.mu_0 = np.zeros(self.num_features)
+        self.kappa_0 = 1.0
+        self.psi_0 = np.eye(self.num_features)
+        self.nu_0 = self.num_features + 2
 
-        All histories are appended together so that they stay the same length and
+    def _record_parameters(self, log_posterior):
+        """
+        Append the current parameters and their scores to the two histories.
+
+        The histories are appended together so that they stay the same length and
         entry t of one always describes entry t of the others.
 
         Args:
-            log_likelihood: log-likelihood under the current parameters, a float
             log_posterior: log-posterior (up to a constant) under the current
                 parameters, a float
         """
@@ -209,13 +196,12 @@ class GaussianMixtureGibbs:
         self.parameter_history.append(
             np.concatenate(
                 [
+                    self.coefficients.flatten(),
                     self.means.flatten(),
                     self.covariances.flatten(),
-                    self.coefficients.flatten(),
                 ]
             )
         )
-        self.log_likelihood_history.append(log_likelihood)
         self.log_posterior_history.append(log_posterior)
 
     # ------------------------------------------------------------------
@@ -227,25 +213,24 @@ class GaussianMixtureGibbs:
         Train the Gaussian mixture model with Gibbs sampling.
 
         In each iteration, the component assignments are sampled under the current
-        parameters, then the parameters are sampled given the assignments, and
-        finally the log-likelihood and the log-posterior of the new parameters are
-        computed. From iteration burn_in on, the parameters and their scores are
-        recorded together. After the last iteration, the recorded parameters with
-        the highest log-posterior become the final parameters.
+        parameters, then the parameters are sampled given the assignments, and finally
+        the log-posterior of the new parameters is computed. From iteration burn_in on,
+        the parameters and their scores are recorded together. After the last iteration,
+        the recorded parameters with the highest log-posterior become the final parameters.
 
         Args:
             samples: training samples, shape (num_samples, num_features)
+
+        Raises:
+            ValueError: if samples is invalid (see _check_samples)
+            FloatingPointError: if the log-posterior is not finite
         """
         samples = self._check_samples(samples)
         self._init_parameters(samples)
 
-        # Fall back to the initial parameters if no log-posterior is ever better
+        # Initialize the best parameters
         best_log_posterior = -np.inf
-        best_parameters = (
-            self.means.copy(),
-            self.covariances.copy(),
-            self.coefficients.copy(),
-        )
+        best_parameters = None
 
         for iteration in range(self.num_iterations):
             # Sample component assignments, then parameters given the assignments
@@ -254,13 +239,19 @@ class GaussianMixtureGibbs:
 
             # Score the new parameters with the likelihood and the prior
             (
-                log_likelihood,
                 log_prior,
+                log_likelihood,
                 log_posterior,
             ) = self._compute_log_posterior(samples)
 
+            if not np.isfinite(log_posterior):
+                raise FloatingPointError(
+                    f"Non-finite log-posterior ({log_posterior}) at iteration "
+                    f"{iteration}: log-prior={log_prior}, log-likelihood={log_likelihood}"
+                )
+
             if iteration >= self.burn_in:
-                self._record_parameters(log_likelihood, log_posterior)
+                self._record_parameters(log_posterior)
 
                 # Keep track of the best parameters based on log-posterior
                 if log_posterior > best_log_posterior:
@@ -274,8 +265,7 @@ class GaussianMixtureGibbs:
             if iteration % LOG_INTERVAL == 0:
                 print(
                     f"Iteration {iteration}/{self.num_iterations}, "
-                    f"log-likelihood: {log_likelihood:.2f}, "
-                    f"log-prior: {log_prior:.2f}"
+                    f"log-posterior: {log_posterior:.3f}"
                 )
 
         # Keep the parameters with the highest log-posterior after burn-in
@@ -290,9 +280,10 @@ class GaussianMixtureGibbs:
         Args:
             samples: training samples, shape (num_samples, num_features)
         """
-        log_weighted = self._compute_log_weighted_densities(samples)
+        log_weighted_densities = self._compute_log_weighted_densities(samples)
         probabilities = np.exp(
-            log_weighted - logsumexp(log_weighted, axis=1, keepdims=True)
+            log_weighted_densities
+            - logsumexp(log_weighted_densities, axis=1, keepdims=True)
         )
         probabilities /= np.sum(probabilities, axis=1, keepdims=True)
 
@@ -322,23 +313,25 @@ class GaussianMixtureGibbs:
         Args:
             samples: training samples, shape (num_samples, num_features)
         """
-        counts = np.zeros(self.num_components, dtype=int)
+        component_sizes = np.zeros(self.num_components, dtype=int)
 
         for j in range(self.num_components):
             component_samples = samples[self.assignments == j]
-            counts[j] = len(component_samples)
+            component_sizes[j] = len(component_samples)
 
-            if counts[j] > 0:
-                kappa_n = self.kappa_0 + counts[j]
-                nu_n = self.nu_0 + counts[j]
-                sample_mean = np.mean(component_samples, axis=0)
-                mu_n = (self.kappa_0 * self.mu_0 + counts[j] * sample_mean) / kappa_n
-                deviations = component_samples - sample_mean
-                mean_difference = sample_mean - self.mu_0
+            if component_sizes[j] > 0:
+                kappa_n = self.kappa_0 + component_sizes[j]
+                nu_n = self.nu_0 + component_sizes[j]
+                component_mean = np.mean(component_samples, axis=0)
+                mu_n = (
+                    self.kappa_0 * self.mu_0 + component_sizes[j] * component_mean
+                ) / kappa_n
+                deviations = component_samples - component_mean
+                mean_difference = component_mean - self.mu_0
                 psi_n = (
                     self.psi_0
                     + deviations.T @ deviations
-                    + (self.kappa_0 * counts[j] / kappa_n)
+                    + (self.kappa_0 * component_sizes[j] / kappa_n)
                     * np.outer(mean_difference, mean_difference)
                 )
             else:
@@ -358,7 +351,31 @@ class GaussianMixtureGibbs:
                 mean=mu_n, cov=self.covariances[j] / kappa_n
             )
 
-        self.coefficients = dirichlet.rvs(self.alpha + counts).flatten()
+        self.coefficients = dirichlet.rvs(self.alpha + component_sizes).flatten()
+
+    def _compute_log_posterior(self, samples):
+        """
+        Compute the log-prior, log-likelihood, and the log-posterior of the
+        current parameters. The log-posterior is only known up to the constant
+        log-evidence:
+            log p(θ | X) = log p(θ) + log p(X | θ) - log p(X)
+
+        The log-likelihood is defined as
+            log L = Σ_{i=1}^N log( Σ_{j=1}^K π_j * N(x_i | μ_j, Σ_j) )
+
+        Args:
+            samples: input samples, shape (num_samples, num_features)
+
+        Returns:
+            log_prior: log-prior of the current parameters, a float
+            log_likelihood: log-likelihood under the current parameters, a float
+            log_posterior: log_likelihood + log_prior, a float
+        """
+        log_prior = self._compute_log_prior()
+        log_likelihood = float(
+            np.sum(logsumexp(self._compute_log_weighted_densities(samples), axis=1))
+        )
+        return log_prior, log_likelihood, log_likelihood + log_prior
 
     def _compute_log_prior(self):
         """
@@ -388,33 +405,10 @@ class GaussianMixtureGibbs:
                     self.means[j],
                     mean=self.mu_0,
                     cov=self.covariances[j] / self.kappa_0,
-                    allow_singular=True,
                 )
             )
 
         return log_prior
-
-    def _compute_log_posterior(self, samples):
-        """
-        Compute the log-likelihood, the log-prior and the log-posterior of the
-        current parameters. The log-posterior is only known up to the constant
-        log-evidence:
-            log p(θ | X) = log p(X | θ) + log p(θ) - log p(X)
-
-        The log-likelihood is defined as
-            log L = Σ_{i=1}^N log( Σ_{j=1}^K π_j * N(x_i | μ_j, Σ_j) )
-
-        Args:
-            samples: input samples, shape (num_samples, num_features)
-
-        Returns:
-            log_likelihood: log-likelihood under the current parameters, a float
-            log_prior: log-prior of the current parameters, a float
-            log_posterior: log_likelihood + log_prior, a float
-        """
-        log_likelihood = float(np.sum(logsumexp(self._compute_log_weighted_densities(samples), axis=1)))
-        log_prior = self._compute_log_prior()
-        return log_likelihood, log_prior, log_likelihood + log_prior
 
     # ------------------------------------------------------------------
     # Prediction
@@ -447,22 +441,22 @@ class GaussianMixtureGibbs:
             samples: input samples, shape (num_samples, num_features)
 
         Returns:
-            log_weighted: log_weighted[i, j] = log( π_j * N(x_i | μ_j, Σ_j) ),
+            log_weighted_densities: Entry[i, j] is log( π_j * N(x_i | μ_j, Σ_j) ),
                 shape (num_samples, num_components)
         """
-        samples = np.asarray(samples, dtype=float)
-        log_weighted = np.zeros((samples.shape[0], self.num_components))
+        log_weighted_densities = np.zeros((samples.shape[0], self.num_components))
 
+        with np.errstate(divide="ignore"):
+            log_coefficients = np.log(self.coefficients)
         for j in range(self.num_components):
             log_density = multivariate_normal.logpdf(
                 samples,
                 mean=self.means[j],
                 cov=self.covariances[j],
-                allow_singular=True,
             )
-            log_weighted[:, j] = np.log(max(self.coefficients[j], EPS)) + log_density
+            log_weighted_densities[:, j] = log_coefficients[j] + log_density
 
-        return log_weighted
+        return log_weighted_densities
 
 
 ##############################################################################
@@ -533,7 +527,7 @@ if __name__ == "__main__":
     print(f"Number of components for GMM: {num_components}")
 
     # Random seed for reproducibility, after data creation
-    MODEL_SEED = 32
+    MODEL_SEED = 64
     np.random.seed(MODEL_SEED)
 
     # Initialize the Gaussian mixture model
@@ -551,14 +545,13 @@ if __name__ == "__main__":
     )
     print(f"Best log-posterior (up to a constant): {model.best_log_posterior:.4f}")
 
-    # Plot the curves of the log-likelihood and the log-posterior
+    # Plot the curve of the log-posterior
     pf.plot_convergence_curve(
         series={
-            "log-likelihood": model.log_likelihood_history,
             "log-posterior": model.log_posterior_history,
         },
         x_label="iteration",
-        y_label="log-density",
+        y_label="log-posterior",
         method_name="GMM with GS",
         file_name="gmm-gs-curve.png",
         start_iteration=model.burn_in,

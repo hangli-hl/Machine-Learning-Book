@@ -528,22 +528,23 @@ class GaussianMixtureMetropolis:
             samples: input samples, shape (num_samples, num_features)
 
         Returns:
-            log_weighted: log_weighted[i, j] = log( π_j * N(x_i | μ_j, Σ_j) ),
+            log_weighted_densities: Entry[i, j] is log( π_j * N(x_i | μ_j, Σ_j) ),
                 shape (num_samples, num_components)
         """
         samples = np.asarray(samples, dtype=float)
-        log_weighted = np.zeros((samples.shape[0], self.num_components))
+        log_weighted_densities = np.zeros((samples.shape[0], self.num_components))
 
+        with np.errstate(divide="ignore"):
+            log_coefficients = np.log(self.coefficients)
         for j in range(self.num_components):
             log_density = multivariate_normal.logpdf(
                 samples,
                 mean=self.means[j],
                 cov=self.covariances[j],
-                allow_singular=True,
             )
-            log_weighted[:, j] = np.log(max(self.coefficients[j], EPS)) + log_density
+            log_weighted_densities[:, j] = log_coefficients[j] + log_density
 
-        return log_weighted
+        return log_weighted_densities
 
 
 ##############################################################################
