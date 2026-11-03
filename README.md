@@ -12,7 +12,7 @@ This repository contains code and documentation for the book, including Python i
 
 ```
 Machine-Learning-Book/
-├── Codes/
+├── Code/
 │   ├── Supervised_Learning/
 │   ├── Unsupervised_Learning/
 │   ├── Deep_Learning/
@@ -54,7 +54,7 @@ Li, Hang. Machine Learning Methods (2nd ed.). Translated by Lu Lin and Huanqiang
 
 ```
 Machine-Learning-Book/
-├── Codes/
+├── Code/
 │   ├── Supervised_Learning/
 │   ├── Unsupervised_Learning/
 │   ├── Deep_Learning/
