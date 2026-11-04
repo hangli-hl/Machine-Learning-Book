@@ -18,8 +18,6 @@ import plot_functions as pf
 MODEL_NAME = "VAE-CNN"
 # Random seed for reproducibility
 MODEL_SEED = 36
-# Number of generated images to show
-NUM_GENERATED_IMAGES = 36
 # Default size of latent representation
 DEFAULT_LATENT_SIZE = 16
 # Default number of training epochs
@@ -28,6 +26,8 @@ DEFAULT_NUM_EPOCHS = 50
 DEFAULT_LEARNING_RATE = 0.001
 # Default batch size for training
 DEFAULT_BATCH_SIZE = 128
+# Number of images to generate for evaluation
+NUM_GENERATED_IMAGES = 36
 
 
 ##############################################################################
@@ -71,9 +71,9 @@ class Encoder(nn.Module):
         Initialize the encoder network.
 
         Args:
-            image_channels: number of image channels, a positive integer
+            image_channels: number of channels of input images, a positive integer
             image_size: size of input images (height = width), a positive integer
-            latent_size: size of latent representation, a positive integer
+            latent_size: size of latent representations, a positive integer
         """
         super().__init__()
         assert image_size == 28, "The CNN architecture is designed for 28x28 images"
@@ -136,7 +136,7 @@ class Decoder(nn.Module):
 
     The network consists of:
     - Unflatten: (batch_size, latent_size) -> (batch_size, latent_size, 1, 1)
-    - ConvTranspose2d: 512 -> 256, 3x3 kernel, stride=1, padding=0,
+    - ConvTranspose2d: latent_size -> 256, 3x3 kernel, stride=1, padding=0,
       with BatchNorm2d and ReLU
     - ConvTranspose2d: 256 -> 128, 3x3 kernel, stride=2, padding=0,
       with BatchNorm2d and ReLU
@@ -161,9 +161,9 @@ class Decoder(nn.Module):
         Initialize the decoder network.
 
         Args:
-            latent_size: size of latent representation, a positive integer
-            image_channels: number of image channels, a positive integer
-            image_size: size of input images (height = width), a positive integer
+            latent_size: size of latent representations, a positive integer
+            image_channels: number of channels of output images, a positive integer
+            image_size: size of output images (height = width), a positive integer
         """
         super().__init__()
         assert image_size == 28, "The CNN architecture is designed for 28x28 images"
@@ -207,7 +207,7 @@ class Decoder(nn.Module):
 
 
 ##############################################################################
-#                       VARIATIONAL AUTOENCODER
+#                          VARIATIONAL AUTOENCODER
 ##############################################################################
 
 
@@ -230,9 +230,9 @@ class VAE(nn.Module):
         Initialize a variational autoencoder (VAE) model.
 
         Args:
-            image_channels: number of image channels, a positive integer
+            image_channels: number of channels of images, a positive integer
             image_size: size of input images (height = width), a positive integer
-            latent_size: size of latent representation, a positive integer
+            latent_size: size of latent representations, a positive integer
         """
         super().__init__()
 
@@ -298,14 +298,14 @@ def train_vae(
     Args:
         model: VAE model
         training_loader: DataLoader for training data
-        fixed_latents: latent vectors used for image generation, shape (36, latent_size)
+        fixed_latents: latent vectors used for image generation, shape (NUM_GENERATED_IMAGES, latent_size)
         num_epochs: number of training epochs, a positive integer
         criterion: loss function (nn.BCELoss)
         optimizer: optimizer (Adam)
         device: device to run computations on (CPU or GPU)
 
     Returns:
-        loss_log: list of training losses for each batch
+        loss_log: list of per-image training losses for each batch
     """
     num_batches = len(training_loader)
     loss_log = []
@@ -327,7 +327,7 @@ def train_vae(
             loss.backward()
             optimizer.step()
 
-            # Store training averaged loss for plotting
+            # Store training loss for plotting
             loss_log.append(loss.item() / images.size(0))
 
             # Print progress
@@ -357,8 +357,8 @@ def compute_vae_loss(images, generated_images, mu, log_var, criterion):
     Returns:
         loss: total VAE loss (reconstruction + KL divergence)
     """
-    # Reconstruction loss: sum of per-pixel binary cross-entropy over the whole
-    # batch (criterion uses reduction="sum"), and input images are normalized to [0, 1]
+    # Reconstruction loss (binary cross-entropy)
+    # Input images are normalized to [0, 1]
     reconstruction_loss = criterion(generated_images, images)
 
     # KL divergence loss
@@ -372,20 +372,20 @@ def generate_samples_vae(model, epoch, fixed_latents, num_epochs):
     Evaluate the VAE by decoding a fixed set of latent vectors.
 
     The same latent vectors are decoded after every epoch, so the images saved
-    in pf.GEN_DIR show how training progresses.
+    show how training progresses.
 
     Args:
         model: trained VAE model
         epoch: current epoch, a non-negative integer
-        fixed_latents: fixed latent vectors, shape (num_images, latent_size),
-            already on the same device as the model, num_generated_images = 36
+        fixed_latents: latent vectors, shape (num_images, latent_size),
+            already on the same device as the model, num_images = NUM_GENERATED_IMAGES
         num_epochs: total number of epochs, a positive integer
     """
     # Set the model to evaluation mode
     model.eval()
 
     with torch.no_grad():
-        # Images are in the sigmoid range [0, 1], the default value_range
+        # Images are in the sigmoid range [0, 1]
         generated_images = model.decoder(fixed_latents)
 
     # Set the model back to training mode
@@ -473,7 +473,7 @@ if __name__ == "__main__":
     criterion = nn.BCELoss(reduction="sum")
     optimizer = optim.Adam(model.parameters(), lr=learning_rate)
 
-    # Generate fixed latent vectors for monitoring training progress
+    # Generate latent vectors for monitoring training progress
     noise_generator = torch.Generator().manual_seed(MODEL_SEED)
     fixed_latents = torch.randn(
         NUM_GENERATED_IMAGES, latent_size, generator=noise_generator

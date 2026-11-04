@@ -18,8 +18,6 @@ import plot_functions as pf
 MODEL_NAME = "GAN-CNN"
 # Random seed for reproducibility
 MODEL_SEED = 36
-# Number of generated images to show
-NUM_GENERATED_IMAGES = 36
 # Default size of latent noise vectors
 DEFAULT_LATENT_SIZE = 64
 # Default number of training epochs
@@ -28,6 +26,9 @@ DEFAULT_NUM_EPOCHS = 50
 DEFAULT_LEARNING_RATE = 0.0002
 # Default batch size for training
 DEFAULT_BATCH_SIZE = 128
+# Number of images to generate for evaluation
+NUM_GENERATED_IMAGES = 36
+
 
 ##############################################################################
 #                            GENERATOR NETWORK
@@ -68,9 +69,9 @@ class Generator(nn.Module):
         Initialize a generator network model.
 
         Args:
-            latent_size: size of input latent vectors, a positive integer
+            latent_size: size of latent noise vectors, a positive integer
             image_channels: number of channels of output images, a positive integer
-            image_size: size of input images (height = width), a positive integer
+            image_size: size of output images (height = width), a positive integer
         """
         super().__init__()
         assert image_size == 28, "The CNN architecture is designed for 28x28 images"
@@ -99,7 +100,7 @@ class Generator(nn.Module):
 
     def forward(self, noises):
         """
-        Forward pass: generate images from latent noises.
+        Forward pass: generate images from latent noise vectors.
 
         Args:
             noises: latent noise vectors of shape (batch_size, latent_size)
@@ -125,7 +126,7 @@ class Discriminator(nn.Module):
     rather than generated.
 
     The network consists of:
-    - Conv2d: 1 -> 64, 4x4 kernel, stride=2, padding=1, with BatchNorm2d and LeakyReLU
+    - Conv2d: 1 -> 64, 4x4 kernel, stride=2, padding=1, with LeakyReLU
     - Conv2d: 64 -> 256, 4x4 kernel, stride=2, padding=1, with BatchNorm2d and LeakyReLU
     - Conv2d: 256 -> 512, 3x3 kernel, stride=2, padding=0, with BatchNorm2d and LeakyReLU
     - Conv2d: 512 -> 1, 3x3 kernel, stride=1, padding=0
@@ -138,7 +139,7 @@ class Discriminator(nn.Module):
     After Layer 3: (batch_size, 512, 3, 3)
     After Layer 4: (batch_size, 1, 1, 1)
     After Flatten: (batch_size, 1)
-    Output: (batch_size, output_size = 1)
+    Output: (batch_size, 1)
 
     Attributes:
         cnn: sequential container of convolutional layers
@@ -188,7 +189,7 @@ class Discriminator(nn.Module):
 
 
 ##############################################################################
-#                     GENERATIVE ADVERSARIAL NETWORK
+#                       GENERATIVE ADVERSARIAL NETWORK
 ##############################################################################
 
 
@@ -210,9 +211,9 @@ class GAN(nn.Module):
         Initialize a generative adversarial network (GAN) model.
 
         Args:
-            image_channels: number of image channels, a positive integer
-            image_size: size of input images (height = width), a positive integer
-            latent_size: size of latent representation, a positive integer
+            image_channels: number of channels of images, a positive integer
+            image_size: size of images (height = width), a positive integer
+            latent_size: size of latent noise vectors, a positive integer
         """
         super().__init__()
 
@@ -221,7 +222,7 @@ class GAN(nn.Module):
 
 
 ##############################################################################
-#                            TRAINING FUNCTION
+#                             TRAINING FUNCTION
 ##############################################################################
 
 
@@ -241,7 +242,7 @@ def train_gan(
     Args:
         model: GAN model containing generator and discriminator
         training_loader: DataLoader for training data
-        fixed_noises: latent vectors used for image generation, shape (36, latent_size)
+        fixed_noises: latent noise vectors, shape (NUM_GENERATED_IMAGES, latent_size)
         num_epochs: number of training epochs, a positive integer
         criterion: loss function (nn.BCELoss)
         optimizer_generator: optimizer for generator (Adam)
@@ -320,16 +321,16 @@ def train_gan(
 
 def generate_samples_gan(model, epoch, fixed_noises, num_epochs):
     """
-    Evaluate the GAN by generating images from a fixed set of noise vectors.
+    Evaluate the GAN by generating images from a fixed set of latent noise vectors.
 
-    The same noise vectors are used after every epoch, so the images saved in
-    pf.GEN_DIR show how training progresses.
+    The same latent noise vectors are used after every epoch, so the images saved
+    show how training progresses.
 
     Args:
         model: trained GAN model
         epoch: current epoch, a non-negative integer
-        fixed_noises: fixed latent vectors, shape (num_images, latent_size),
-            already on the same device as the model, num_generated_images = 36
+        fixed_noises: latent noise vectors, shape (num_images, latent_size),
+            already on the same device as the model, num_images = NUM_GENERATED_IMAGES
         num_epochs: total number of epochs, a positive integer
     """
     # Set the model to evaluation mode
@@ -353,7 +354,7 @@ def generate_samples_gan(model, epoch, fixed_noises, num_epochs):
 
 
 ##############################################################################
-#                              MAIN PROGRAM
+#                               MAIN PROGRAM
 ##############################################################################
 
 
@@ -413,7 +414,7 @@ if __name__ == "__main__":
         f"{image_channels}x{image_size}x{image_size} images"
     )
 
-    # Set random seed for reproducibility, after data creation
+    # Set random seed for reproducibility after data creation
     torch.manual_seed(MODEL_SEED)
     np.random.seed(MODEL_SEED)
 
@@ -429,7 +430,7 @@ if __name__ == "__main__":
         model.discriminator.parameters(), lr=learning_rate, betas=(0.5, 0.999)
     )
 
-    # Generate fixed latent vectors for monitoring training progress
+    # Generate latent noise vectors for monitoring training progress
     noise_generator = torch.Generator().manual_seed(MODEL_SEED)
     fixed_noises = torch.randn(
         NUM_GENERATED_IMAGES, latent_size, generator=noise_generator

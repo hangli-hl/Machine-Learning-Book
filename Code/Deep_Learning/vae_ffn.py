@@ -18,8 +18,6 @@ import plot_functions as pf
 MODEL_NAME = "VAE-FFN"
 # Random seed for reproducibility
 MODEL_SEED = 36
-# Number of images generated to monitor training progress
-NUM_GENERATED_IMAGES = 36
 # Default size of latent representation
 DEFAULT_LATENT_SIZE = 16
 # Default number of training epochs
@@ -28,6 +26,9 @@ DEFAULT_NUM_EPOCHS = 50
 DEFAULT_LEARNING_RATE = 0.001
 # Default batch size for training
 DEFAULT_BATCH_SIZE = 128
+# Number of images to generate for evaluation
+NUM_GENERATED_IMAGES = 36
+
 
 ##############################################################################
 #                            ENCODER NETWORK
@@ -67,7 +68,7 @@ class Encoder(nn.Module):
         Args:
             image_channels: number of channels of input images, a positive integer
             image_size: size of input images (height = width), a positive integer
-            latent_size: size of latent representation, a positive integer
+            latent_size: size of latent representations, a positive integer
         """
         super().__init__()
 
@@ -122,7 +123,7 @@ class Decoder(nn.Module):
     - Hidden layer 1: 256 nodes with ReLU activation
     - Hidden layer 2: 512 nodes with ReLU activation
     - Hidden layer 3: 1024 nodes with ReLU activation
-    - Output layer: output_size nodes with Sigmoid activation
+    - Output layer: image_channels * image_size * image_size nodes with Sigmoid activation
     - Unflatten: reshapes output to (image_channels, image_size, image_size)
 
     Input: (batch_size, latent_size)
@@ -190,11 +191,6 @@ class VAE(nn.Module):
     - Reparameterization: samples latent vectors from N(mu, var) using N(0, 1)
     - Decoder: reconstructs images from latent samples
 
-    Input: (batch_size, image_channels, image_size, image_size)
-    After Encoder: mu (batch_size, latent_size), log_var (batch_size, latent_size)
-    After Reparameterization: (batch_size, latent_size)
-    Output: (batch_size, image_channels, image_size, image_size)
-
     Attributes:
         encoder: Encoder network
         decoder: Decoder network
@@ -205,7 +201,7 @@ class VAE(nn.Module):
         Initialize a variational autoencoder (VAE) model.
 
         Args:
-            image_channels: number of channels of input images, a positive integer
+            image_channels: number of channels of images, a positive integer
             image_size: size of input images (height = width), a positive integer
             latent_size: size of latent representations, a positive integer
         """
@@ -222,7 +218,7 @@ class VAE(nn.Module):
             images: input images of shape (batch_size, image_channels, image_size, image_size)
 
         Returns:
-            generated_images: generated images, shape (batch_size, image_channels, image_size, image_size)
+            generated_images: generated images, same shape as input
             mu: mean of latent distribution, shape (batch_size, latent_size)
             log_var: log variance of latent distribution, shape (batch_size, latent_size)
         """
@@ -273,14 +269,14 @@ def train_vae(
     Args:
         model: VAE model
         training_loader: DataLoader for training data
-        fixed_latents: latent vectors used for image generation, shape (36, latent_size)
+        fixed_latents: latent vectors used for image generation, shape (NUM_GENERATED_IMAGES, latent_size)
         num_epochs: number of training epochs, a positive integer
         criterion: loss function (nn.BCELoss)
         optimizer: optimizer (Adam)
         device: device to run computations on (CPU or GPU)
 
     Returns:
-        loss_log: list of training losses for each batch
+        loss_log: list of per-image training losses for each batch
     """
     num_batches = len(training_loader)
     loss_log = []
@@ -302,7 +298,7 @@ def train_vae(
             loss.backward()
             optimizer.step()
 
-            # Store training averaged loss for plotting
+            # Store training loss for plotting
             loss_log.append(loss.item() / images.size(0))
 
             # Print progress
@@ -352,15 +348,15 @@ def generate_samples_vae(model, epoch, fixed_latents, num_epochs):
     Args:
         model: trained VAE model
         epoch: current epoch, a non-negative integer
-        fixed_latents: fixed latent vectors, shape (num_images, latent_size),
-            already on the same device as the model, num_generated_images = 36
+        fixed_latents: latent vectors, shape (num_images, latent_size),
+            already on the same device as the model, num_images = NUM_GENERATED_IMAGES
         num_epochs: total number of epochs, a positive integer
     """
     # Set the model to evaluation mode
     model.eval()
 
     with torch.no_grad():
-        # Images are in the sigmoid range [0, 1], the default value_range
+        # Images are in the sigmoid range [0, 1]
         generated_images = model.decoder(fixed_latents)
 
     # Set the model back to training mode
@@ -377,7 +373,7 @@ def generate_samples_vae(model, epoch, fixed_latents, num_epochs):
 
 
 ##############################################################################
-#                              MAIN PROGRAM
+#                                MAIN PROGRAM
 ##############################################################################
 
 
@@ -448,7 +444,7 @@ if __name__ == "__main__":
     criterion = nn.BCELoss(reduction="sum")
     optimizer = optim.Adam(model.parameters(), lr=learning_rate)
 
-    # Generate fixed latent vectors for monitoring training progress
+    # Generate latent vectors for monitoring training progress
     noise_generator = torch.Generator().manual_seed(MODEL_SEED)
     fixed_latents = torch.randn(
         NUM_GENERATED_IMAGES, latent_size, generator=noise_generator
@@ -480,4 +476,4 @@ if __name__ == "__main__":
     )
 
     # Plot latent space using t-SNE -> ./plot/vae_ffn_latent_space.png
-    pf.plot_vae_latent_space(means, labels, model_name="VAE-FFN")
+    pf.plot_vae_latent_space(means, labels, model_name=MODEL_NAME)

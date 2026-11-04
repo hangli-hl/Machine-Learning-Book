@@ -25,7 +25,7 @@ DEFAULT_LEARNING_RATE = 0.01
 DEFAULT_BATCH_SIZE = None
 
 ##############################################################################
-#                            FEEDFORWARD NETWORK
+#                           FEEDFORWARD NETWORK CLASS
 ##############################################################################
 
 

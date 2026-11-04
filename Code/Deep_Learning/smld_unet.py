@@ -40,6 +40,9 @@ DEFAULT_SIGMA_MAX = 15.0
 DEFAULT_NUM_LANGEVIN_STEPS = 1
 # Default target signal-to-noise ratio for the Langevin corrector step size
 DEFAULT_TARGET_SNR = 0.16
+# Number of images to generate for evaluation
+NUM_GENERATED_IMAGES = 36
+
 
 ##############################################################################
 #                           SCORE NETWORK CLASS

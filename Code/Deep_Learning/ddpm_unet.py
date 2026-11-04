@@ -33,6 +33,9 @@ DEFAULT_NUM_TIMESTEPS = 1000
 DEFAULT_BETA_START = 0.0001
 # Default last value of the linear beta schedule
 DEFAULT_BETA_END = 0.02
+# Number of images to generate for evaluation
+NUM_GENERATED_IMAGES = 36
+
 
 ##############################################################################
 #                        DIFFUSION PROCESS UTILITIES
@@ -403,7 +406,7 @@ if __name__ == "__main__":
         f"number of timesteps = {num_timesteps}, base channels = {base_channels}, "
         f"beta start = {beta_start}, beta end = {beta_end}"
     )
-    num_gen_images = 36  # Number of images to generate for evaluation
+    num_gen_images = NUM_GENERATED_IMAGES  # Number of images to generate for evaluation
     loss_log = train_ddpm(
         model,
         training_loader,

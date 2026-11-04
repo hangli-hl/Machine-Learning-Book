@@ -36,6 +36,9 @@ DEFAULT_NUM_STEPS = 50
 DEFAULT_SOLVER = "heun"
 # Default minimum noise level of the OT conditional path
 DEFAULT_SIGMA_MIN = 0.0
+# Number of images to generate for evaluation
+NUM_GENERATED_IMAGES = 36
+
 
 ##############################################################################
 #                          FLOW MATCHING UTILITIES
@@ -444,7 +447,7 @@ if __name__ == "__main__":
         f"base channels = {base_channels}, sigma min = {sigma_min}, "
         f"solver = {solver}, steps = {num_steps}"
     )
-    num_gen_images = 36  # Number of images to generate for evaluation
+    num_gen_images = NUM_GENERATED_IMAGES  # Number of images to generate for evaluation
     loss_log = train_fm(
         model,
         training_loader,

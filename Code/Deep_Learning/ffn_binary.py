@@ -23,7 +23,7 @@ DEFAULT_LEARNING_RATE = 0.1
 DEFAULT_BATCH_SIZE = None
 
 ##############################################################################
-#                              FEEDFORWARD NETWORK
+#                         FEEDFORWARD NETWORK CLASS
 ##############################################################################
 
 
@@ -316,7 +316,7 @@ if __name__ == "__main__":
         help="Mini-batch size for SGD. If not specified, full-batch GD is used",
     )
     args = parser.parse_args()
-    print("Train an FFNfor binary classification using Numpy")
+    print("Train an FFN for binary classification using Numpy")
 
     # Load dataset
     training_instances, training_labels, test_instances, test_labels = (
