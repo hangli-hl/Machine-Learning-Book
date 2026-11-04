@@ -414,7 +414,7 @@ if __name__ == "__main__":
         help="Batch size for training",
     )
     args = parser.parse_args()
-    print("Train a VAE with FFN for MNIST image generation")  
+    print("Train a VAE with FFN for MNIST image generation")
 
     # Set device for computing, CUDA, MPS, or CPU
     device = uf.set_device()

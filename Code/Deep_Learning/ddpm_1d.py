@@ -19,7 +19,24 @@ import unet
 MODEL_NAME = "DDPM-1D"
 # Random seed for reproducibility
 MODEL_SEED = 28
-
+# Default number of training samples to generate
+DEFAULT_NUM_SAMPLES = 2000
+# Default number of training iterations
+DEFAULT_NUM_ITERATIONS = 2000
+# Default learning rate for Adam optimizer
+DEFAULT_LEARNING_RATE = 0.001
+# Default batch size for training
+DEFAULT_BATCH_SIZE = 256
+# Default number of hidden units in the UNet1D
+DEFAULT_HIDDEN_SIZE = 128
+# Default number of diffusion timesteps
+DEFAULT_NUM_TIMESTEPS = 1000
+# Default first value of the linear beta schedule
+DEFAULT_BETA_START = 0.0001
+# Default last value of the linear beta schedule
+DEFAULT_BETA_END = 0.02
+# Default number of generated samples to create
+DEFAULT_NUM_GEN_SAMPLES = 3000
 
 ##############################################################################
 #                        DIFFUSION PROCESS UTILITIES
@@ -168,7 +185,14 @@ class Diffusion1D:
 
 
 def train_ddpm(
-    model, data, num_iterations, batch_size, criterion, optimizer, diffusion, device
+    model,
+    data,
+    num_iterations,
+    batch_size,
+    criterion,
+    optimizer,
+    diffusion,
+    device,
 ):
     """
     Train the denoising diffusion probabilistic model.
@@ -292,55 +316,55 @@ if __name__ == "__main__":
     parser.add_argument(
         "--num-samples",
         type=int,
-        default=2000,
+        default=DEFAULT_NUM_SAMPLES,
         help="Number of training samples to generate",
     )
     parser.add_argument(
         "--num-iterations",
         type=int,
-        default=2000,
+        default=DEFAULT_NUM_ITERATIONS,
         help="Number of training iterations",
     )
     parser.add_argument(
         "--learning-rate",
         type=float,
-        default=0.001,
+        default=DEFAULT_LEARNING_RATE,
         help="Learning rate for Adam optimizer",
     )
     parser.add_argument(
         "--batch-size",
         type=int,
-        default=256,
+        default=DEFAULT_BATCH_SIZE,
         help="Batch size for training",
     )
     parser.add_argument(
         "--hidden-size",
         type=int,
-        default=128,
+        default=DEFAULT_HIDDEN_SIZE,
         help="Number of hidden units in the UNet1D",
     )
     parser.add_argument(
         "--num-timesteps",
         type=int,
-        default=1000,
+        default=DEFAULT_NUM_TIMESTEPS,
         help="Number of diffusion timesteps",
     )
     parser.add_argument(
         "--beta-start",
         type=float,
-        default=0.0001,
+        default=DEFAULT_BETA_START,
         help="First value of the linear beta schedule",
     )
     parser.add_argument(
         "--beta-end",
         type=float,
-        default=0.02,
+        default=DEFAULT_BETA_END,
         help="Last value of the linear beta schedule",
     )
     parser.add_argument(
         "--num-gen-samples",
         type=int,
-        default=3000,
+        default=DEFAULT_NUM_GEN_SAMPLES,
         help="Number of generated samples to create",
     )
     args = parser.parse_args()
@@ -380,12 +404,20 @@ if __name__ == "__main__":
 
     # Train model
     print(
-        f"Training with Adam, iterations = {num_iterations}, learning rate = {learning_rate}, "
-        f"batch size = {batch_size}, number of timesteps = {num_timesteps}, "
-        f"hidden size = {hidden_size}, beta start = {beta_start}, beta end = {beta_end}"
+        f"Training with Adam, iterations = {num_iterations}, "
+        f"learning rate = {learning_rate}, batch size = {batch_size}, "
+        f"number of timesteps = {num_timesteps}, hidden size = {hidden_size}, "
+        f"beta start = {beta_start}, beta end = {beta_end}"
     )
     loss_log = train_ddpm(
-        model, data, num_iterations, batch_size, criterion, optimizer, diffusion, device
+        model,
+        data,
+        num_iterations,
+        batch_size,
+        criterion,
+        optimizer,
+        diffusion,
+        device,
     )
 
     # Plot training loss curve

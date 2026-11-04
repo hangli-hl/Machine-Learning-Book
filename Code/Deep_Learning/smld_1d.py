@@ -22,7 +22,28 @@ MODEL_NAME = "SMLD-1D"
 MODEL_SEED = 28
 # A small constant to avoid division by zero
 EPS = 1e-12
-
+# Default number of training samples
+DEFAULT_NUM_SAMPLES = 2000
+# Default number of training iterations
+DEFAULT_NUM_ITERATIONS = 5000
+# Default learning rate for Adam optimizer
+DEFAULT_LEARNING_RATE = 0.001
+# Default batch size for training
+DEFAULT_BATCH_SIZE = 256
+# Default number of hidden units in the UNet1D
+DEFAULT_HIDDEN_SIZE = 128
+# Default number of noise levels in the geometric schedule
+DEFAULT_NUM_NOISE_LEVELS = 10
+# Default smallest noise level
+DEFAULT_SIGMA_MIN = 0.01
+# Default largest noise level
+DEFAULT_SIGMA_MAX = 10.0
+# Default number of Langevin corrector steps per noise level
+DEFAULT_NUM_LANGEVIN_STEPS = 10
+# Default target signal-to-noise ratio for the Langevin corrector step size
+DEFAULT_TARGET_SNR = 0.10
+# Default number of generated samples to create
+DEFAULT_NUM_GEN_SAMPLES = 3000
 
 ##############################################################################
 #                           SCORE NETWORK CLASS
@@ -392,67 +413,67 @@ if __name__ == "__main__":
     parser.add_argument(
         "--num-samples",
         type=int,
-        default=2000,
+        default=DEFAULT_NUM_SAMPLES,
         help="Number of training samples",
     )
     parser.add_argument(
         "--num-iterations",
         type=int,
-        default=5000,
+        default=DEFAULT_NUM_ITERATIONS,
         help="Number of training iterations",
     )
     parser.add_argument(
         "--learning-rate",
         type=float,
-        default=0.001,
+        default=DEFAULT_LEARNING_RATE,
         help="Learning rate for Adam optimizer",
     )
     parser.add_argument(
         "--batch-size",
         type=int,
-        default=256,
+        default=DEFAULT_BATCH_SIZE,
         help="Batch size for training",
     )
     parser.add_argument(
         "--hidden-size",
         type=int,
-        default=128,
+        default=DEFAULT_HIDDEN_SIZE,
         help="Number of hidden units in the UNet1D",
     )
     parser.add_argument(
         "--num-noise-levels",
         type=int,
-        default=10,
+        default=DEFAULT_NUM_NOISE_LEVELS,
         help="Number of noise levels in the geometric schedule",
     )
     parser.add_argument(
         "--sigma-min",
         type=float,
-        default=0.01,
+        default=DEFAULT_SIGMA_MIN,
         help="Smallest noise level",
     )
     parser.add_argument(
         "--sigma-max",
         type=float,
-        default=10.0,
+        default=DEFAULT_SIGMA_MAX,
         help="Largest noise level",
     )
     parser.add_argument(
         "--num-langevin-steps",
         type=int,
-        default=10,
+        default=DEFAULT_NUM_LANGEVIN_STEPS,
         help="Number of Langevin corrector steps per noise level",
     )
     parser.add_argument(
         "--target-snr",
         type=float,
-        default=0.10,
+        default=DEFAULT_TARGET_SNR,
         help="Target signal-to-noise ratio for the Langevin corrector step size",
     )
     parser.add_argument(
         "--num-gen-samples",
         type=int,
-        default=3000,
+        default=DEFAULT_NUM_GEN_SAMPLES,
         help="Number of generated samples to create",
     )
     args = parser.parse_args()
@@ -500,9 +521,9 @@ if __name__ == "__main__":
 
     # Train model
     print(
-        f"Training with Adam, iterations = {num_iterations}, learning rate = {learning_rate}, "
-        f"batch size = {batch_size}, noise levels = {num_noise_levels}, "
-        f"hidden size = {hidden_size}"
+        f"Training with Adam, iterations = {num_iterations}, "
+        f"learning rate = {learning_rate}, batch size = {batch_size}, "
+        f"noise levels = {num_noise_levels}, hidden size = {hidden_size}"
     )
     loss_log = train_smld(
         model,

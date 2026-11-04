@@ -21,6 +21,24 @@ MODEL_NAME = "FM-1D"
 MODEL_SEED = 28
 # Supported ODE solvers, in increasing order of accuracy
 SOLVERS = ("euler", "midpoint", "heun", "rk4")
+# Default number of training samples to generate
+DEFAULT_NUM_SAMPLES = 2000
+# Default number of training iterations
+DEFAULT_NUM_ITERATIONS = 5000
+# Default learning rate for Adam optimizer
+DEFAULT_LEARNING_RATE = 0.001
+# Default batch size for training
+DEFAULT_BATCH_SIZE = 256
+# Default number of hidden units in the UNet1D
+DEFAULT_HIDDEN_SIZE = 128
+# Default number of ODE integration steps for sampling
+DEFAULT_NUM_STEPS = 100
+# Default ODE solver used for sampling
+DEFAULT_SOLVER = "rk4"
+# Default minimum noise level of the OT conditional path
+DEFAULT_SIGMA_MIN = 0.0
+# Default number of generated samples to create
+DEFAULT_NUM_GEN_SAMPLES = 3000
 
 ##############################################################################
 #                          FLOW MATCHING UTILITIES
@@ -347,8 +365,8 @@ def compute_path_trajs(flow_matching, data, num_trajs):
         num_trajs: number of trajectories to record, a positive integer
 
     Returns:
-        trajs: stacked trajectories, shape (num_steps + 1, num_trajs, 1).
-            Row 0 is t = 1 (data) and the last row is t = 0 (noise).
+        trajs: stacked trajectories, shape (num_steps + 1, num_trajs, 1)
+            Row 0 is t = 1 (data) and the last row is t = 0 (noise)
     """
     num_steps = flow_matching.num_steps
     device = flow_matching.device
@@ -381,10 +399,9 @@ def generate_ode_trajs(model, flow_matching, num_trajs):
         num_trajs: number of trajectories to record, a positive integer
 
     Returns:
-    trajs: stacked trajectories, shape (num_steps + 1, num_trajs, 1).
-        Row 0 is t = 0 (noise) and the last row is t = 1 (data).
+        trajs: stacked trajectories, shape (num_steps + 1, num_trajs, 1)
+            Row 0 is t = 0 (noise) and the last row is t = 1 (data)
     """
-
     _, trajs = flow_matching.generate_ode(model, num_trajs, return_traj=True)
     return trajs
 
@@ -404,8 +421,8 @@ def invert_ode_trajs(model, flow_matching, data, num_trajs):
         num_trajs: number of trajectories to record, a positive integer
 
     Returns:
-        trajs: stacked trajectories, shape (num_steps + 1, num_trajs, 1).
-            Row 0 is t = 1 (data) and the last row is t = 0 (noise).
+        trajs: stacked trajectories, shape (num_steps + 1, num_trajs, 1)
+            Row 0 is t = 1 (data) and the last row is t = 0 (noise)
     """
     device = flow_matching.device
 
@@ -465,56 +482,56 @@ if __name__ == "__main__":
     parser.add_argument(
         "--num-samples",
         type=int,
-        default=2000,
+        default=DEFAULT_NUM_SAMPLES,
         help="Number of training samples to generate",
     )
     parser.add_argument(
         "--num-iterations",
         type=int,
-        default=5000,
+        default=DEFAULT_NUM_ITERATIONS,
         help="Number of training iterations",
     )
     parser.add_argument(
         "--learning-rate",
         type=float,
-        default=0.001,
+        default=DEFAULT_LEARNING_RATE,
         help="Learning rate for Adam optimizer",
     )
     parser.add_argument(
         "--batch-size",
         type=int,
-        default=256,
+        default=DEFAULT_BATCH_SIZE,
         help="Batch size for training",
     )
     parser.add_argument(
         "--hidden-size",
         type=int,
-        default=128,
+        default=DEFAULT_HIDDEN_SIZE,
         help="Number of hidden units in the UNet1D",
     )
     parser.add_argument(
         "--num-steps",
         type=int,
-        default=100,
+        default=DEFAULT_NUM_STEPS,
         help="Number of ODE integration steps for sampling",
     )
     parser.add_argument(
         "--solver",
         type=str,
-        default="rk4",
+        default=DEFAULT_SOLVER,
         choices=SOLVERS,
         help="ODE solver used for sampling",
     )
     parser.add_argument(
         "--sigma-min",
         type=float,
-        default=0.0,
+        default=DEFAULT_SIGMA_MIN,
         help="Minimum noise level of the OT conditional path",
     )
     parser.add_argument(
         "--num-gen-samples",
         type=int,
-        default=3000,
+        default=DEFAULT_NUM_GEN_SAMPLES,
         help="Number of generated samples to create",
     )
     args = parser.parse_args()
@@ -559,9 +576,10 @@ if __name__ == "__main__":
 
     # Train model
     print(
-        f"Training with Adam, iterations = {num_iterations}, learning rate = {learning_rate}, "
-        f"batch size = {batch_size}, hidden size = {hidden_size}, "
-        f"sigma min = {sigma_min}, solver = {solver}, steps = {num_steps}"
+        f"Training with Adam, iterations = {num_iterations}, "
+        f"learning rate = {learning_rate}, batch size = {batch_size}, "
+        f"hidden size = {hidden_size}, sigma min = {sigma_min}, "
+        f"solver = {solver}, steps = {num_steps}"
     )
     loss_log = train_fm(
         model,

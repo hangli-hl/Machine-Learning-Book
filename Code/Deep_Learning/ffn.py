@@ -232,7 +232,10 @@ if __name__ == "__main__":
 
     # Plot training loss curve
     pf.plot_training_curve(
-        loss_log, MODEL_NAME, x_label="training iterations", y_label="cross-entropy loss"
+        loss_log,
+        MODEL_NAME,
+        x_label="training iterations",
+        y_label="cross-entropy loss",
     )
 
     # Evaluate on training set

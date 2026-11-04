@@ -108,9 +108,9 @@ class FeedforwardBinary:
             num_features: number of features, a positive integer
         """
         # First layer
-        self.hidden_weights = np.random.randn(
-            num_features, self.hidden_size
-        ) * np.sqrt(2.0 / (num_features + self.hidden_size))
+        self.hidden_weights = np.random.randn(num_features, self.hidden_size) * np.sqrt(
+            2.0 / (num_features + self.hidden_size)
+        )
         self.hidden_biases = np.zeros((1, self.hidden_size))
 
         # Second layer (single output unit for binary classification)
@@ -388,9 +388,7 @@ if __name__ == "__main__":
 
     # Evaluate on training set
     predicted_training_labels = model.predict(training_instances)
-    training_accuracy = uf.evaluate_accuracy(
-        training_labels, predicted_training_labels
-    )
+    training_accuracy = uf.evaluate_accuracy(training_labels, predicted_training_labels)
     print(f"Training accuracy: {training_accuracy:.4f}")
 
     # Evaluate on test set
