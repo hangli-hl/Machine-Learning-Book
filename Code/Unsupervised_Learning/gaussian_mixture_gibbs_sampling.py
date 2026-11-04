@@ -399,12 +399,12 @@ class GaussianMixtureGibbs:
                 self._record_parameters(log_posterior)
 
                 # Keep track of the best parameters based on log-posterior
-                if log_posterior > best_log_posterior:
+                if best_parameters is None or log_posterior > best_log_posterior:
                     best_log_posterior = log_posterior
                     best_parameters = (
+                        self.coefficients.copy(),
                         self.means.copy(),
                         self.covariances.copy(),
-                        self.coefficients.copy(),
                     )
 
             if iteration % LOG_INTERVAL == 0:
@@ -414,7 +414,7 @@ class GaussianMixtureGibbs:
                 )
 
         # Keep the parameters with the highest log-posterior after burn-in
-        self.means, self.covariances, self.coefficients = best_parameters
+        self.coefficients, self.means, self.covariances = best_parameters
         self.best_log_posterior = best_log_posterior
         self.assignments = self.predict(samples)
 

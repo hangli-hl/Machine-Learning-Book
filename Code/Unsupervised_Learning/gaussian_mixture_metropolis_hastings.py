@@ -104,7 +104,7 @@ class GaussianMixtureMetropolis:
             list of floats
         acceptance_rate_history: windowed acceptance rate per recorded parameter
             vector, list of floats
-        parameter_history: flattened parameters (means, covariances, coefficients)
+        parameter_history: flattened parameters (coefficients, means, covariances)
             per recorded snapshot, list of 1D arrays. Entry t holds the
             parameters that produced log_likelihood_history[t] and
             acceptance_rate_history[t]
@@ -233,9 +233,9 @@ class GaussianMixtureMetropolis:
         self.parameter_history.append(
             np.concatenate(
                 [
+                    self.coefficients.flatten(),
                     self.means.flatten(),
                     self.covariances.flatten(),
-                    self.coefficients.flatten(),
                 ]
             )
         )
@@ -544,7 +544,6 @@ class GaussianMixtureMetropolis:
                 samples,
                 mean=means[j],
                 cov=covariances[j],
-                allow_singular=True,
             )
             log_weighted_densities[:, j] = log_coefficients[j] + log_density
 

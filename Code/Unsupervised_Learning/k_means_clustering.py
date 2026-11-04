@@ -57,11 +57,12 @@ class KMeansClustering:
             trajectory plot.
     """
 
-    def __init__(self, 
-                 num_clusters, 
-                 num_iterations=DEFAULT_NUM_ITERATIONS, 
-                 convergence_threshold=DEFAULT_CONVERGENCE_THRESHOLD
-                 ):
+    def __init__(
+        self,
+        num_clusters,
+        num_iterations=DEFAULT_NUM_ITERATIONS,
+        convergence_threshold=DEFAULT_CONVERGENCE_THRESHOLD,
+    ):
         """
         Initialize a K-Means clustering model.
 
