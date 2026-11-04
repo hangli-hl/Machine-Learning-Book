@@ -11,7 +11,7 @@ import data_creators as dc
 import utility_functions as uf
 import plot_functions as pf
 
-# Default random seed for model initialization and training shuffling
+# Random seed for model initialization and training shuffling
 MODEL_SEED = 36
 # Default number of nodes in the first hidden layer
 DEFAULT_HIDDEN1_SIZE = 6
@@ -31,7 +31,7 @@ DEFAULT_BATCH_SIZE = None
 
 class FeedforwardMulticlass:
     """
-    Feedforward Network for multi-class classification.
+    Feedforward Network for multiclass classification.
 
     The network consists of:
     - Input layer: num_features nodes
@@ -49,7 +49,6 @@ class FeedforwardMulticlass:
         learning_rate: step size for parameter updates, a positive float
         batch_size: number of instances per mini-batch, a positive integer
             or None for full-batch GD
-        seed: random seed for parameter initialization and shuffling, an integer
         input_size: number of input features
         output_size: number of output classes
         hidden1_weights: weights for first hidden layer, shape (input_size, hidden1_size)
@@ -60,7 +59,7 @@ class FeedforwardMulticlass:
         output_biases: biases for output layer, shape (1, output_size)
         hidden1_acts: activations of the first hidden layer, shape (num_instances, hidden1_size)
         hidden2_acts: activations of the second hidden layer, shape (num_instances, hidden2_size)
-        output_probs: probabilities of the last output layer, shape (num_instances, output_size)
+        output_probs: probabilities of the output layer, shape (num_instances, output_size)
         loss_log: list of training cross-entropy losses;
             loss_log[k] is the loss after k+1 epochs;
             loss_log[-1] is the loss of the final trained model;
@@ -134,37 +133,6 @@ class FeedforwardMulticlass:
         self.output_biases = np.zeros((1, self.output_size))
 
     # ------------------------------------------------------------------
-    # Forward pass
-    # ------------------------------------------------------------------
-
-    def forward(self, instances):
-        """
-        Forward pass: compute class probabilities with current parameters.
-
-        Args:
-            instances: input instances of shape (num_instances, input_size)
-
-        Returns:
-            output_probs: class probabilities, shape (num_instances, output_size)
-        """
-        # First hidden layer (ReLU activation)
-        self.hidden1_acts = uf.relu(
-            instances @ self.hidden1_weights + self.hidden1_biases
-        )
-
-        # Second hidden layer (ReLU activation)
-        self.hidden2_acts = uf.relu(
-            self.hidden1_acts @ self.hidden2_weights + self.hidden2_biases
-        )
-
-        # Output layer (softmax activation)
-        self.output_probs = uf.softmax(
-            self.hidden2_acts @ self.output_weights + self.output_biases
-        )
-
-        return self.output_probs
-
-    # ------------------------------------------------------------------
     # Training
     # ------------------------------------------------------------------
 
@@ -234,6 +202,37 @@ class FeedforwardMulticlass:
             # Print progress
             if (epoch + 1) % 1000 == 0 or (epoch + 1) == self.num_epochs:
                 print(f"Epoch [{epoch + 1}/{self.num_epochs}], Loss: {loss:.4f}")
+
+    # ------------------------------------------------------------------
+    # Forward and backward passes
+    # ------------------------------------------------------------------
+
+    def forward(self, instances):
+        """
+        Forward pass: compute class probabilities with current parameters.
+
+        Args:
+            instances: input instances of shape (num_instances, input_size)
+
+        Returns:
+            output_probs: class probabilities, shape (num_instances, output_size)
+        """
+        # First hidden layer (ReLU activation)
+        self.hidden1_acts = uf.relu(
+            instances @ self.hidden1_weights + self.hidden1_biases
+        )
+
+        # Second hidden layer (ReLU activation)
+        self.hidden2_acts = uf.relu(
+            self.hidden1_acts @ self.hidden2_weights + self.hidden2_biases
+        )
+
+        # Output layer (softmax activation)
+        self.output_probs = uf.softmax(
+            self.hidden2_acts @ self.output_weights + self.output_biases
+        )
+
+        return self.output_probs
 
     def backward(self, instances, labels):
         """
@@ -375,7 +374,7 @@ if __name__ == "__main__":
         help="Mini-batch size for SGD. If not specified, full-batch GD is used",
     )
     args = parser.parse_args()
-    print("Train a Feedforward Network (FFN) for multiclass classification using Numpy")
+    print("Train an FFN for multiclass classification using Numpy")
 
     # Load dataset
     training_instances, training_labels, test_instances, test_labels = (

@@ -16,7 +16,7 @@ import plot_functions as pf
 
 # Name used in plot titles and file names
 MODEL_NAME = "CNN"
-# Random seed for reproducibility
+# Random seed for model initialization and training shuffling
 MODEL_SEED = 36
 # Number of misclassified images to show
 NUM_MISCLASSIFIED = 20
@@ -64,11 +64,6 @@ class ConvolutionalNeuralNetwork(nn.Module):
     def __init__(self, image_channels, image_size, output_size):
         """
         Initialize a convolutional neural network model.
-
-        Args:
-            image_channels: number of channels of input images, a positive integer
-            image_size: size of input images (height = width), a positive integer
-            output_size: number of output classes, a positive integer
         """
         super().__init__()
 

@@ -448,12 +448,12 @@ def load_mnist_classification_data(batch_size):
 
 def load_mnist_generation_data(batch_size, tanh_range=False):
     """
-    Load and preprocess the MNIST dataset for image generation by VAE and GAN.
+    Load and preprocess the MNIST dataset for image generation.
 
     Args:
         batch_size: number of samples per batch, a positive integer
         tanh_range: whether to scale pixels to [-1, 1] or keep [0, 1], a boolean,
-            set to True for GAN and False for VAE
+            set to True for GAN, DDPM, SMLD and FM, and False for VAE
 
     Returns:
         training_loader: DataLoader for training data

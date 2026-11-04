@@ -16,7 +16,7 @@ import plot_functions as pf
 
 # Name used in plot titles and file names
 MODEL_NAME = "FFN"
-# Random seed for reproducibility
+# Random seed for model initialization and training shuffling
 MODEL_SEED = 36
 # Number of misclassified images to show
 NUM_MISCLASSIFIED = 20
@@ -28,7 +28,7 @@ DEFAULT_LEARNING_RATE = 0.001
 DEFAULT_BATCH_SIZE = 128
 
 ##############################################################################
-#                            FEEDFORWARD NETWORK
+#                           FEEDFORWARD NETWORK CLASS
 ##############################################################################
 
 
@@ -182,7 +182,7 @@ if __name__ == "__main__":
         help="Batch size for training and testing",
     )
     args = parser.parse_args()
-    print("Train a FNN for MNIST classification using PyTorch")
+    print("Train an FFN for MNIST classification using PyTorch")
 
     # Set device for computing, CUDA, MPS, or CPU
     device = uf.set_device()

@@ -11,7 +11,7 @@ import data_creators as dc
 import utility_functions as uf
 import plot_functions as pf
 
-# Default random seed for model initialization and training shuffling
+# Random seed for model initialization and training shuffling
 MODEL_SEED = 36
 # Default number of hidden units
 DEFAULT_HIDDEN_SIZE = 4
@@ -89,17 +89,6 @@ class FeedforwardBinary:
     # Helper functions
     # ------------------------------------------------------------------
 
-    @staticmethod
-    def _check_labels(labels):
-        """
-        Check that labels are in {0, 1} and that both classes are present.
-
-        Args:
-            labels: training labels of shape (num_instances,)
-        """
-        if set(np.unique(labels)) != {0, 1}:
-            raise ValueError("Labels must be in {0, 1} and contain both classes")
-
     def _init_parameters(self, num_features):
         """
         Initialize weights (Xavier's method) and biases (zero).
@@ -118,70 +107,6 @@ class FeedforwardBinary:
             2.0 / (self.hidden_size + 1)
         )
         self.output_biases = np.zeros((1, 1))
-
-    # ------------------------------------------------------------------
-    # Forward and backward passes
-    # ------------------------------------------------------------------
-
-    def forward(self, instances):
-        """
-        Forward pass: compute predicted probabilities with current parameters.
-
-        Args:
-            instances: multiple input instances of shape (num_instances, num_features)
-
-        Returns:
-            probs: predicted probabilities of positive class, shape (num_instances, 1)
-        """
-        # Compute hidden layer: h = σ(W1·x + b1)
-        hidden_scores = instances @ self.hidden_weights + self.hidden_biases
-        self.hidden_acts = uf.sigmoid(hidden_scores)
-
-        # Compute output layer: p = σ(W2·h + b2)
-        output_scores = self.hidden_acts @ self.output_weights + self.output_biases
-        self.output_probs = uf.sigmoid(output_scores)
-
-        return self.output_probs
-
-    def _compute_gradients(self, instances, labels):
-        """
-        Compute the gradients of the mean logistic loss, using the activations
-        and probabilities stored by the latest forward pass.
-
-        Args:
-            instances: training instances of shape (num_instances, num_features)
-            labels: true labels of shape (num_instances, 1), labels in {0, 1}
-
-        Returns:
-            tuple: (grad_hidden_weights, grad_hidden_biases,
-                    grad_output_weights, grad_output_biases)
-        """
-        num_instances = instances.shape[0]
-
-        # Output errors: (true - predicted)
-        output_errors = labels - self.output_probs  # shape: (num_instances, 1)
-
-        # Hidden layer errors: σ'(h) ⊙ ((y - p)·W2^T)
-        hidden_errors = uf.sigmoid_derivative(self.hidden_acts) * (
-            output_errors @ self.output_weights.T
-        )
-
-        # Gradients of the loss: ∂L/∂W = - (1/N) · input^T · errors
-        grad_output_weights = -(self.hidden_acts.T @ output_errors) / num_instances
-        grad_output_biases = (
-            -np.sum(output_errors, axis=0, keepdims=True) / num_instances
-        )
-        grad_hidden_weights = -(instances.T @ hidden_errors) / num_instances
-        grad_hidden_biases = (
-            -np.sum(hidden_errors, axis=0, keepdims=True) / num_instances
-        )
-
-        return (
-            grad_hidden_weights,
-            grad_hidden_biases,
-            grad_output_weights,
-            grad_output_biases,
-        )
 
     # ------------------------------------------------------------------
     # Training
@@ -205,8 +130,6 @@ class FeedforwardBinary:
             instances: training instances of shape (num_instances, num_features)
             labels: training labels of shape (num_instances,), labels in {0, 1}
         """
-        self._check_labels(labels)
-
         # Set random seed, then initialize parameters
         np.random.seed(MODEL_SEED)
         self._init_parameters(instances.shape[1])
@@ -255,24 +178,77 @@ class FeedforwardBinary:
             if (epoch + 1) % 1000 == 0 or (epoch + 1) == self.num_epochs:
                 print(f"Epoch [{epoch + 1}/{self.num_epochs}], Loss: {loss:.4f}")
 
+    # ------------------------------------------------------------------
+    # Forward and backward passes
+    # ------------------------------------------------------------------
+
+    def forward(self, instances):
+        """
+        Forward pass: compute predicted probabilities with current parameters.
+
+        Args:
+            instances: multiple input instances of shape (num_instances, num_features)
+
+        Returns:
+            probs: predicted probabilities of positive class, shape (num_instances, 1)
+        """
+        # Compute hidden layer: h = σ(W1·x + b1)
+        hidden_scores = instances @ self.hidden_weights + self.hidden_biases
+        self.hidden_acts = uf.sigmoid(hidden_scores)
+
+        # Compute output layer: p = σ(W2·h + b2)
+        output_scores = self.hidden_acts @ self.output_weights + self.output_biases
+        self.output_probs = uf.sigmoid(output_scores)
+
+        return self.output_probs
+
     def backward(self, instances, labels):
         """
         Backward pass: compute gradients and update parameters (one GD step).
 
-            W := W - η ∂L/∂W
-            b := b - η ∂L/∂b
-
         Must be called after forward() on the same instances.
 
         Args:
-            instances: training instances of shape (num_instances, num_features)
-            labels: training labels of shape (num_instances, 1), labels in {0, 1}
+            instances: input instances of shape (num_instances, num_features)
+            labels: true labels of shape (num_instances, 1), labels in {0, 1}
         """
-        grad_hw, grad_hb, grad_ow, grad_ob = self._compute_gradients(instances, labels)
-        self.output_weights -= self.learning_rate * grad_ow
-        self.output_biases -= self.learning_rate * grad_ob
-        self.hidden_weights -= self.learning_rate * grad_hw
-        self.hidden_biases -= self.learning_rate * grad_hb
+        num_instances = instances.shape[0]
+
+        # ============================================================
+        # Compute all error signals
+        # ============================================================
+
+        # Calculate output layer errors
+        output_errors = labels - self.output_probs  # shape: (num_instances, 1)
+
+        # Calculate hidden layer errors
+        hidden_errors = uf.sigmoid_derivative(self.hidden_acts) * (
+            output_errors @ self.output_weights.T
+        )  # shape: (num_instances, hidden_size)
+
+        # ============================================================
+        # Update all weights and biases
+        # ============================================================
+
+        # Update output layer weights and biases
+        self.output_weights += (
+            self.learning_rate * (self.hidden_acts.T @ output_errors) / num_instances
+        )
+        self.output_biases += (
+            self.learning_rate
+            * np.sum(output_errors, axis=0, keepdims=True)
+            / num_instances
+        )
+
+        # Update hidden layer weights and biases
+        self.hidden_weights += (
+            self.learning_rate * (instances.T @ hidden_errors) / num_instances
+        )
+        self.hidden_biases += (
+            self.learning_rate
+            * np.sum(hidden_errors, axis=0, keepdims=True)
+            / num_instances
+        )
 
     # ------------------------------------------------------------------
     # Prediction
@@ -340,7 +316,7 @@ if __name__ == "__main__":
         help="Mini-batch size for SGD. If not specified, full-batch GD is used",
     )
     args = parser.parse_args()
-    print("Train a Feedforward Network (FFN) for binary classification using Numpy")
+    print("Train an FFNfor binary classification using Numpy")
 
     # Load dataset
     training_instances, training_labels, test_instances, test_labels = (

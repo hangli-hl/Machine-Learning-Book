@@ -16,7 +16,7 @@ import plot_functions as pf
 
 # Name used in plot titles and file names
 MODEL_NAME = "ViT"
-# Random seed for reproducibility
+# Random seed for model initialization and training shuffling
 MODEL_SEED = 36
 # Number of misclassified images to show
 NUM_MISCLASSIFIED = 20
@@ -70,11 +70,6 @@ class VisionTransformer(nn.Module):
     def __init__(self, image_channels, image_size, output_size):
         """
         Initialize a Vision Transformer model.
-
-        Args:
-            image_channels: number of channels of input images, a positive integer
-            image_size: size of input images (height = width), a positive integer
-            output_size: number of output classes, a positive integer
         """
         super().__init__()
 
@@ -136,21 +131,24 @@ class VisionTransformer(nn.Module):
         batch_size = images.shape[0]
 
         # Extract and embed patches via Conv2d
-        # (batch, embed_dim, num_patches_h, num_patches_w) -> (batch, num_patches, embed_dim)
+        # (batch, embed_dim, num_patches_h, num_patches_w)
+        # -> (batch, num_patches, embed_dim)
         patch_embeddings = self.patch_embedding(images).flatten(2).transpose(1, 2)
 
-        # Prepend CLS token,
+        # Prepend CLS token
         # cls_token: [1, 1, embed_dim] -> cls_tokens: [batch, 1, embed_dim]
         cls_tokens = self.cls_token.expand(batch_size, -1, -1)
-        # (batch, 1, embed_dim) concat (batch, N, embed_dim) -> (batch, N + 1, embed_dim)
+        # (batch, 1, embed_dim) concat (batch, num_patches, embed_dim)
+        # -> (batch, num_patches + 1, embed_dim)
         x = torch.cat([cls_tokens, patch_embeddings], dim=1)
 
         # Add positional embeddings
-        # (batch, N+1, embed_dim) + (1, N+1, embed_dim) -> (batch, N+1, embed_dim)
+        # (batch, num_patches+1, embed_dim) + (1, num_patches+1, embed_dim)
+        #  -> (batch, num_patches+1, embed_dim)
         x = self.embedding_dropout(x + self.positional_embedding)
 
         # Pass through transformer encoder
-        # (batch, N+1, embed_dim) -> (batch, N+1, embed_dim)
+        # (batch, num_patches+1, embed_dim) -> (batch, num_patches+1, embed_dim)
         x = self.transformer_encoder(x)
 
         # Classification using CLS token
@@ -223,7 +221,7 @@ if __name__ == "__main__":
 
     # Parse command-line arguments
     parser = argparse.ArgumentParser(
-        description="Train a Vision Transformer (ViT)for image (MNIST) classification "
+        description="Train a Vision Transformer (ViT) for image (MNIST) classification "
         "using PyTorch",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
