@@ -18,7 +18,16 @@ import plot_functions as pf
 MODEL_NAME = "GAN-FFN"
 # Random seed for reproducibility
 MODEL_SEED = 36
-
+# Number of generated images to show
+NUM_GENERATED_IMAGES = 36
+# Default size of latent noise vectors
+DEFAULT_LATENT_SIZE = 64
+# Default number of training epochs
+DEFAULT_NUM_EPOCHS = 50
+# Default learning rate for Adam optimizer
+DEFAULT_LEARNING_RATE = 0.0002
+# Default batch size for training
+DEFAULT_BATCH_SIZE = 128
 
 ##############################################################################
 #                            GENERATOR NETWORK
@@ -203,7 +212,7 @@ def train_gan(
     device,
 ):
     """
-    Train the generative adversarial network.
+    Train the generative adversarial network (GAN).
 
     Args:
         model: GAN model containing generator and discriminator
@@ -232,7 +241,7 @@ def train_gan(
             # Move tensors to device
             images = images.to(device)
             real_labels = torch.ones(images.size(0), 1).to(device)
-            gen_labels = torch.zeros(images.size(0), 1).to(device)
+            fake_labels = torch.zeros(images.size(0), 1).to(device)
 
             # --- Train Discriminator ---
             optimizer_discriminator.zero_grad()
@@ -245,7 +254,7 @@ def train_gan(
             noises = torch.randn(images.size(0), latent_size).to(device)
             generated_images = model.generator(noises)
             gen_probabilities = model.discriminator(generated_images.detach())
-            gen_loss = criterion(gen_probabilities, gen_labels)
+            gen_loss = criterion(gen_probabilities, fake_labels)
 
             # Total discriminator loss
             discriminator_loss = (real_loss + gen_loss) / 2
@@ -328,31 +337,32 @@ if __name__ == "__main__":
 
     # Parse command-line arguments
     parser = argparse.ArgumentParser(
-        description="Train a Generative Adersarial Network (GAN) with FFN for MNIST image generation",
+        description="Train a Generative Adversarial Network (GAN) with FFN "
+        "for MNIST image generation",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
     parser.add_argument(
         "--latent-size",
         type=int,
-        default=64,
+        default=DEFAULT_LATENT_SIZE,
         help="Size of latent noise vectors",
     )
     parser.add_argument(
         "--num-epochs",
         type=int,
-        default=50,
+        default=DEFAULT_NUM_EPOCHS,
         help="Number of training epochs",
     )
     parser.add_argument(
         "--learning-rate",
         type=float,
-        default=0.0002,
+        default=DEFAULT_LEARNING_RATE,
         help="Learning rate for Adam optimizer",
     )
     parser.add_argument(
         "--batch-size",
         type=int,
-        default=128,
+        default=DEFAULT_BATCH_SIZE,
         help="Batch size for training",
     )
     args = parser.parse_args()
@@ -379,7 +389,7 @@ if __name__ == "__main__":
         f"{image_channels}x{image_size}x{image_size} images"
     )
 
-    # Set random seed for reproducibility after data creation
+    # Set random seed for reproducibility, after data creation
     torch.manual_seed(MODEL_SEED)
     np.random.seed(MODEL_SEED)
 
@@ -396,10 +406,9 @@ if __name__ == "__main__":
     )
 
     # Generate fixed latent vectors for monitoring training progress
-    num_generated_images = 36
     noise_generator = torch.Generator().manual_seed(MODEL_SEED)
     fixed_noises = torch.randn(
-        num_generated_images, latent_size, generator=noise_generator
+        NUM_GENERATED_IMAGES, latent_size, generator=noise_generator
     ).to(device)
 
     # Train model
@@ -423,6 +432,6 @@ if __name__ == "__main__":
     # Plot training loss curves -> ./plot/gan_ffn_training_curve.png
     pf.plot_training_curve(
         {"Discriminator": discriminator_loss_log, "Generator": generator_loss_log},
-        "GAN-FFN",
+        MODEL_NAME,
         y_label="binary cross-entropy loss",
     )

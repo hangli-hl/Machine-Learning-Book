@@ -11,6 +11,8 @@ import data_creators as dc
 import utility_functions as uf
 import plot_functions as pf
 
+# Default random seed for model initialization and training shuffling
+MODEL_SEED = 36
 # Default number of hidden units
 DEFAULT_HIDDEN_SIZE = 4
 # Default number of training epochs
@@ -19,8 +21,6 @@ DEFAULT_NUM_EPOCHS = 10000
 DEFAULT_LEARNING_RATE = 0.1
 # Default mini-batch size (None: full-batch GD)
 DEFAULT_BATCH_SIZE = None
-# Default random seed for model initialization and training shuffling
-DEFAULT_SEED = 36
 
 ##############################################################################
 #                              FEEDFORWARD NETWORK
@@ -49,7 +49,6 @@ class FeedforwardBinary:
         learning_rate: step size for parameter updates, a positive float
         batch_size: number of instances per mini-batch, a positive integer
             or None for full-batch GD
-        seed: random seed for parameter initialization and shuffling, an integer
         hidden_weights: hidden layer weights, shape (num_features, hidden_size)
         hidden_biases: hidden layer bias, shape (1, hidden_size)
         output_weights: output layer weights, shape (hidden_size, 1)
@@ -68,7 +67,6 @@ class FeedforwardBinary:
         num_epochs=DEFAULT_NUM_EPOCHS,
         learning_rate=DEFAULT_LEARNING_RATE,
         batch_size=DEFAULT_BATCH_SIZE,
-        seed=DEFAULT_SEED,
     ):
         """
         Initialize a Feedforward Network.
@@ -77,7 +75,6 @@ class FeedforwardBinary:
         self.num_epochs = num_epochs
         self.learning_rate = learning_rate
         self.batch_size = batch_size
-        self.seed = seed
 
         self.hidden_weights = None
         self.hidden_biases = None
@@ -211,7 +208,7 @@ class FeedforwardBinary:
         self._check_labels(labels)
 
         # Set random seed, then initialize parameters
-        np.random.seed(self.seed)
+        np.random.seed(MODEL_SEED)
         self._init_parameters(instances.shape[1])
 
         num_instances = instances.shape[0]
@@ -306,7 +303,8 @@ if __name__ == "__main__":
 
     # Parse command-line arguments
     parser = argparse.ArgumentParser(
-        description="Train a Feedforward Network (FFN) model for binary classification",
+        description="Train a Feedforward Network (FFN) model for binary classification "
+        "using Numpy",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
     parser.add_argument(
@@ -342,7 +340,7 @@ if __name__ == "__main__":
         help="Mini-batch size for SGD. If not specified, full-batch GD is used",
     )
     args = parser.parse_args()
-    print("Train a Feedforward Network (FFN) for binary classification")
+    print("Train a Feedforward Network (FFN) for binary classification using Numpy")
 
     # Load dataset
     training_instances, training_labels, test_instances, test_labels = (

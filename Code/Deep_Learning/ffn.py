@@ -14,6 +14,8 @@ import data_creators as dc
 import utility_functions as uf
 import plot_functions as pf
 
+# Name used in plot titles and file names
+MODEL_NAME = "FFN"
 # Random seed for reproducibility
 MODEL_SEED = 36
 # Number of misclassified images to show
@@ -157,8 +159,8 @@ if __name__ == "__main__":
 
     # Parse command-line arguments
     parser = argparse.ArgumentParser(
-        description="Train a Feedforward Network (FFN) "
-        "for image (MNIST) classification using PyTorch",
+        description="Train a Feedforward Network (FFN) for image (MNIST) classification "
+        "using PyTorch",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
     parser.add_argument(
@@ -230,7 +232,7 @@ if __name__ == "__main__":
 
     # Plot training loss curve
     pf.plot_training_curve(
-        loss_log, "FFN", x_label="training iterations", y_label="cross-entropy loss"
+        loss_log, MODEL_NAME, x_label="training iterations", y_label="cross-entropy loss"
     )
 
     # Evaluate on training set
@@ -252,5 +254,5 @@ if __name__ == "__main__":
         misclassified_images,
         true_labels,
         predicted_labels,
-        model_name="FFN",
+        model_name=MODEL_NAME,
     )

@@ -18,7 +18,16 @@ import plot_functions as pf
 MODEL_NAME = "VAE-FFN"
 # Random seed for reproducibility
 MODEL_SEED = 36
-
+# Number of images generated to monitor training progress
+NUM_GENERATED_IMAGES = 36
+# Default size of latent representation
+DEFAULT_LATENT_SIZE = 16
+# Default number of training epochs
+DEFAULT_NUM_EPOCHS = 50
+# Default learning rate for Adam optimizer
+DEFAULT_LEARNING_RATE = 0.001
+# Default batch size for training
+DEFAULT_BATCH_SIZE = 128
 
 ##############################################################################
 #                            ENCODER NETWORK
@@ -376,35 +385,36 @@ if __name__ == "__main__":
 
     # Parse command-line arguments
     parser = argparse.ArgumentParser(
-        description="Train a Variational Autoencoder (VAE) with FFN for MNIST image generation",
+        description="Train a Variational Autoencoder (VAE) with FFN "
+        "for MNIST image generation",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
     parser.add_argument(
         "--latent-size",
         type=int,
-        default=16,
+        default=DEFAULT_LATENT_SIZE,
         help="Size of latent representation",
     )
     parser.add_argument(
         "--num-epochs",
         type=int,
-        default=50,
+        default=DEFAULT_NUM_EPOCHS,
         help="Number of training epochs",
     )
     parser.add_argument(
         "--learning-rate",
         type=float,
-        default=0.001,
+        default=DEFAULT_LEARNING_RATE,
         help="Learning rate for Adam optimizer",
     )
     parser.add_argument(
         "--batch-size",
         type=int,
-        default=128,
+        default=DEFAULT_BATCH_SIZE,
         help="Batch size for training",
     )
     args = parser.parse_args()
-    print("Train a VAE with FFN for MNIST image generation")
+    print("Train a VAE with FFN for MNIST image generation")  
 
     # Set device for computing, CUDA, MPS, or CPU
     device = uf.set_device()
@@ -439,10 +449,9 @@ if __name__ == "__main__":
     optimizer = optim.Adam(model.parameters(), lr=learning_rate)
 
     # Generate fixed latent vectors for monitoring training progress
-    num_generated_images = 36
     noise_generator = torch.Generator().manual_seed(MODEL_SEED)
     fixed_latents = torch.randn(
-        num_generated_images, latent_size, generator=noise_generator
+        NUM_GENERATED_IMAGES, latent_size, generator=noise_generator
     ).to(device)
 
     # Train model
@@ -463,7 +472,7 @@ if __name__ == "__main__":
     print(f"Generated images saved to {pf.GEN_DIR}")
 
     # Plot training loss curve -> ./plot/vae_ffn_training_curve.png
-    pf.plot_training_curve(loss_log, "VAE-FFN", y_label="VAE loss per image")
+    pf.plot_training_curve(loss_log, MODEL_NAME, y_label="VAE loss per image")
 
     # Extract latent means and labels
     means, labels = uf.extract_vae_latent_representations(

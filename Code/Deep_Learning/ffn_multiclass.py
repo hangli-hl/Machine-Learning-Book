@@ -11,6 +11,8 @@ import data_creators as dc
 import utility_functions as uf
 import plot_functions as pf
 
+# Default random seed for model initialization and training shuffling
+MODEL_SEED = 36
 # Default number of nodes in the first hidden layer
 DEFAULT_HIDDEN1_SIZE = 6
 # Default number of nodes in the second hidden layer
@@ -21,8 +23,6 @@ DEFAULT_NUM_EPOCHS = 10000
 DEFAULT_LEARNING_RATE = 0.01
 # Default mini-batch size (None: full-batch GD)
 DEFAULT_BATCH_SIZE = None
-# Default random seed for model initialization and training shuffling
-DEFAULT_SEED = 36
 
 ##############################################################################
 #                            FEEDFORWARD NETWORK
@@ -74,7 +74,6 @@ class FeedforwardMulticlass:
         num_epochs=DEFAULT_NUM_EPOCHS,
         learning_rate=DEFAULT_LEARNING_RATE,
         batch_size=DEFAULT_BATCH_SIZE,
-        seed=DEFAULT_SEED,
     ):
         """
         Initialize a Feedforward Network.
@@ -84,7 +83,6 @@ class FeedforwardMulticlass:
         self.num_epochs = num_epochs
         self.learning_rate = learning_rate
         self.batch_size = batch_size
-        self.seed = seed
 
         self.input_size = None
         self.output_size = None
@@ -189,7 +187,7 @@ class FeedforwardMulticlass:
             labels: class labels of shape (num_instances, ), values in {0, 1, ..., num_classes-1}
         """
         # Set random seed, then initialize parameters
-        np.random.seed(self.seed)
+        np.random.seed(MODEL_SEED)
         self._init_parameters(instances.shape[1], len(np.unique(labels)))
 
         # Convert class labels to one-hot vectors
@@ -335,7 +333,8 @@ if __name__ == "__main__":
 
     # Parse command-line arguments
     parser = argparse.ArgumentParser(
-        description="Train a Feedforward Network (FFN) model for multiclass classification",
+        description="Train a Feedforward Network (FFN) model for multiclass classification "
+        "using Numpy",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
     parser.add_argument(
@@ -376,7 +375,7 @@ if __name__ == "__main__":
         help="Mini-batch size for SGD. If not specified, full-batch GD is used",
     )
     args = parser.parse_args()
-    print("Train a Feedforward Network (FFN) for multiclass classification")
+    print("Train a Feedforward Network (FFN) for multiclass classification using Numpy")
 
     # Load dataset
     training_instances, training_labels, test_instances, test_labels = (
