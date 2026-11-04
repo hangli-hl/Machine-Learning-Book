@@ -171,6 +171,33 @@ class GradientBoostingMulticlass:
         """
         return self.shrinkage * learner.predict(instances)
 
+    def _compute_logits(self, instances):
+        """
+        Compute the logits of all classes of all instances.
+        Logits are unnormalized class scores before softmax.
+
+        For each class k, the logit is the sum of the initial prediction and all
+        learner predictions of class k, scaled by the shrinkage:
+            f_k(x) = f_{k,0} + sum_{j=1}^{M} η · h_{k,j}(x)
+
+        Args:
+            instances: input instances, shape (num_instances, num_features)
+
+        Returns:
+            logits: predicted class logits, shape (num_instances, num_classes)
+        """
+        num_instances = instances.shape[0]
+
+        # Initialize logits with the initial predictions
+        logits = np.tile(self.initial_predictions, (num_instances, 1))
+
+        # Accumulate the shrunken predictions of all learners of each class
+        for class_index in range(self.num_classes):
+            for learner in self.ensembles[class_index]:
+                logits[:, class_index] += self._predict_learner(learner, instances)
+
+        return logits
+
     # ------------------------------------------------------------------
     # Training
     # ------------------------------------------------------------------
@@ -254,37 +281,10 @@ class GradientBoostingMulticlass:
             labels: predicted class labels in [0, num_classes-1], shape (num_instances,), dtype=int
         """
         # Compute logits of all classes
-        logits = self.compute_logits(instances)
+        logits = self._compute_logits(instances)
 
         # Find the class with the highest logit for each instance
         return np.argmax(logits, axis=1)
-
-    def compute_logits(self, instances):
-        """
-        Compute the logits of all classes of all instances.
-        Logits are unnormalized class scores before softmax.
-
-        For each class k, the logit is the sum of the initial prediction and all
-        learner predictions of class k, scaled by the shrinkage:
-            f_k(x) = f_{k,0} + sum_{j=1}^{M} η · h_{k,j}(x)
-
-        Args:
-            instances: input instances, shape (num_instances, num_features)
-
-        Returns:
-            logits: predicted class logits, shape (num_instances, num_classes)
-        """
-        num_instances = instances.shape[0]
-
-        # Initialize logits with the initial predictions
-        logits = np.tile(self.initial_predictions, (num_instances, 1))
-
-        # Accumulate the shrunken predictions of all learners of each class
-        for class_index in range(self.num_classes):
-            for learner in self.ensembles[class_index]:
-                logits[:, class_index] += self._predict_learner(learner, instances)
-
-        return logits
 
     def forward(self, instances):
         """
@@ -298,7 +298,7 @@ class GradientBoostingMulticlass:
                 values in [0, 1], each row sums to 1
         """
         # Compute logits and apply softmax to get probabilities
-        logits = self.compute_logits(instances)
+        logits = self._compute_logits(instances)
         return uf.softmax(logits)
 
 
