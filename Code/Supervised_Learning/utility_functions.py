@@ -18,7 +18,7 @@ EXP_CLIP = 100.0
 ##############################################################################
 
 
-def calculate_accuracy(true_labels, predicted_labels):
+def evaluate_accuracy(true_labels, predicted_labels):
     """
     Calculate classification accuracy.
 
@@ -35,7 +35,7 @@ def calculate_accuracy(true_labels, predicted_labels):
     return np.mean(true_labels == predicted_labels)
 
 
-def calculate_mse(true_values, predicted_values):
+def evaluate_mse(true_values, predicted_values):
     """
     Calculate mean squared error (MSE).
 

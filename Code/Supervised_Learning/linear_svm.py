@@ -336,12 +336,12 @@ if __name__ == "__main__":
 
     # Evaluate on training set
     predicted_labels = model.predict(training_instances)
-    training_accuracy = uf.calculate_accuracy(training_labels, predicted_labels)
+    training_accuracy = uf.evaluate_accuracy(training_labels, predicted_labels)
     print(f"Training accuracy: {training_accuracy:.4f}")
 
     # Evaluate on test set
     predicted_labels = model.predict(test_instances)
-    test_accuracy = uf.calculate_accuracy(test_labels, predicted_labels)
+    test_accuracy = uf.evaluate_accuracy(test_labels, predicted_labels)
     print(f"Test accuracy: {test_accuracy:.4f}")
 
     # Visualize the linear svm model (only for 2D data)

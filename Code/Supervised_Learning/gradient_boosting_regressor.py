@@ -114,7 +114,7 @@ class GradientBoostingRegressor:
         Returns:
             loss: mean squared error, a float
         """
-        return uf.calculate_mse(values, predicted_values)
+        return uf.evaluate_mse(values, predicted_values)
 
     def _train_learner(self, instances, residuals):
         """
@@ -318,12 +318,12 @@ if __name__ == "__main__":
 
     # Evaluate on training set
     predicted_training_values = model.predict(training_instances)
-    training_mse = uf.calculate_mse(training_values, predicted_training_values)
+    training_mse = uf.evaluate_mse(training_values, predicted_training_values)
     print(f"Training MSE: {training_mse:.4f}")
 
     # Evaluate on test set
     predicted_test_values = model.predict(test_instances)
-    test_mse = uf.calculate_mse(test_values, predicted_test_values)
+    test_mse = uf.evaluate_mse(test_values, predicted_test_values)
     print(f"Test MSE: {test_mse:.4f}")
 
     # Visualize the gradient boosting regressor (only for 2D data)
