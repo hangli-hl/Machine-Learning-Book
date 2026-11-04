@@ -1,0 +1,256 @@
+##############################################################################
+#              FEEDFORWARD NETWORK (FFN) FOR IMAGE CLASSIFICATION
+##############################################################################
+
+
+import argparse
+
+import torch
+import torch.nn as nn
+import torch.optim as optim
+import numpy as np
+
+import data_creators as dc
+import utility_functions as uf
+import plot_functions as pf
+
+# Random seed for reproducibility
+MODEL_SEED = 36
+# Number of misclassified images to show
+NUM_MISCLASSIFIED = 20
+
+
+##############################################################################
+#                            FEEDFORWARD NETWORK CLASS
+##############################################################################
+
+
+class FeedforwardNetwork(nn.Module):
+    """
+    Feedforward Network for image (MNIST) classification using PyTorch.
+
+    The network consists of:
+    - Flatten: flattens input images to vectors of input_size
+    - Hidden layer 1: 512 nodes with ReLU activation
+    - Hidden layer 2: 256 nodes with ReLU activation
+    - Hidden layer 3: 128 nodes with ReLU activation
+    - Hidden layer 4: 64 nodes with ReLU activation
+    - Output layer: output_size nodes
+
+    Input: (batch_size, image_channels, image_size, image_size)
+    After Flatten: (batch_size, 784)
+    After Hidden Layer 1: (batch_size, 512)
+    After Hidden Layer 2: (batch_size, 256)
+    After Hidden Layer 3: (batch_size, 128)
+    After Hidden Layer 4: (batch_size, 64)
+    Output: (batch_size, output_size = 10)
+
+    Attributes:
+        ffn: sequential container of network layers
+    """
+
+    def __init__(self, image_channels, image_size, output_size):
+        """
+        Initialize a feedforward network model.
+
+        Args:
+            image_channels: number of channels of input images, a positive integer
+            image_size: size of input images (height = width), a positive integer
+            output_size: number of output classes, a positive integer
+        """
+        super().__init__()
+
+        input_size = image_channels * image_size * image_size
+        hidden1_size = 512
+        hidden2_size = 256
+        hidden3_size = 128
+        hidden4_size = 64
+
+        # Define network architecture
+        self.ffn = nn.Sequential(
+            nn.Flatten(),
+            nn.Linear(input_size, hidden1_size),
+            nn.ReLU(),
+            nn.Linear(hidden1_size, hidden2_size),
+            nn.ReLU(),
+            nn.Linear(hidden2_size, hidden3_size),
+            nn.ReLU(),
+            nn.Linear(hidden3_size, hidden4_size),
+            nn.ReLU(),
+            nn.Linear(hidden4_size, output_size),
+        )
+
+    def forward(self, images):
+        """
+        Forward pass: compute class logits.
+
+        Args:
+            images: input images of shape (batch_size, image_channels, image_size, image_size)
+
+        Returns:
+            logits: class logits, shape (batch_size, output_size)
+        """
+        logits = self.ffn(images)
+        return logits
+
+
+##############################################################################
+#                            TRAINING FUNCTION
+##############################################################################
+
+
+def train_ffn(model, training_loader, num_epochs, criterion, optimizer, device):
+    """
+    Train the feedforward network using Adam.
+
+    Args:
+        model: FeedforwardNetwork model
+        training_loader: DataLoader for training data
+        num_epochs: number of training epochs, a positive integer
+        criterion: loss function (nn.CrossEntropyLoss)
+        optimizer: optimizer (Adam)
+        device: device to run computations on (CPU or GPU)
+
+    Returns:
+        loss_log: list of training losses for each batch
+    """
+    num_batches = len(training_loader)
+    loss_log = []
+
+    # Set the model to training mode
+    model.train()
+
+    for epoch in range(num_epochs):
+        for index, (images, labels) in enumerate(training_loader):
+            # Move tensors to device
+            images = images.to(device)
+            labels = labels.to(device)
+
+            # Forward pass
+            logits = model(images)
+            loss = criterion(logits, labels)
+
+            # Backward pass and optimization
+            optimizer.zero_grad()
+            loss.backward()
+            optimizer.step()
+
+            # Store training loss for plotting
+            loss_log.append(loss.item())
+
+            # Print progress
+            if (index + 1) % 100 == 0 or (index + 1) == num_batches:
+                print(
+                    f"Epoch [{epoch + 1}/{num_epochs}], "
+                    f"Batch [{index + 1}/{num_batches}], Loss: {loss.item():.4f}"
+                )
+
+    return loss_log
+
+
+##############################################################################
+#                              MAIN PROGRAM
+##############################################################################
+
+
+if __name__ == "__main__":
+
+    # Parse command-line arguments
+    parser = argparse.ArgumentParser(
+        description="Train a Feedforward Network (FFN) "
+        "for image (MNIST) classification using PyTorch",
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
+    )
+    parser.add_argument(
+        "--num-epochs",
+        type=int,
+        default=10,
+        help="Number of training epochs",
+    )
+    parser.add_argument(
+        "--learning-rate",
+        type=float,
+        default=0.001,
+        help="Learning rate for Adam optimizer",
+    )
+    parser.add_argument(
+        "--batch-size",
+        type=int,
+        default=128,
+        help="Batch size for training and testing",
+    )
+    args = parser.parse_args()
+    print("Train a FNN for MNIST classification using PyTorch")
+
+    # Set device for computing, CUDA, MPS, or CPU
+    device = uf.set_device()
+    print(f"Using device: {device}")
+
+    # Set hyperparameters
+    image_channels = 1  # MNIST images are grayscale images
+    image_size = 28  # MNIST images are 28x28 pixels
+    num_classes = 10  # 10 classes for digits 0-9
+
+    num_epochs = args.num_epochs
+    learning_rate = args.learning_rate
+    batch_size = args.batch_size
+
+    # Load dataset
+    training_loader, test_loader = dc.load_mnist_classification_data(batch_size)
+    print(
+        f"Training set: {len(training_loader.dataset)} images, "
+        f"{image_channels}x{image_size}x{image_size} images, {num_classes} classes"
+    )
+    print(
+        f"Test set: {len(test_loader.dataset)} images, "
+        f"{image_channels}x{image_size}x{image_size} images, {num_classes} classes"
+    )
+
+    # Set random seed for reproducibility, after data creation
+    torch.manual_seed(MODEL_SEED)
+    np.random.seed(MODEL_SEED)
+
+    # Initialize feedforward network model
+    model = FeedforwardNetwork(
+        image_channels=image_channels, image_size=image_size, output_size=num_classes
+    ).to(device)
+
+    # Define loss function and optimizer
+    criterion = nn.CrossEntropyLoss()
+    optimizer = optim.Adam(model.parameters(), lr=learning_rate)
+
+    # Train model
+    print(
+        f"Training with Adam, number of epochs = {num_epochs}, "
+        f"learning rate = {learning_rate}, batch size = {batch_size}"
+    )
+    loss_log = train_ffn(
+        model, training_loader, num_epochs, criterion, optimizer, device
+    )
+
+    # Plot training loss curve
+    pf.plot_training_curve(
+        loss_log, "FFN", x_label="training iterations", y_label="cross-entropy loss"
+    )
+
+    # Evaluate on training set
+    training_accuracy = uf.evaluate_model_accuracy(model, training_loader, device)
+    print(f"Training accuracy: {training_accuracy:.4f}")
+
+    # Evaluate on test set
+    test_accuracy = uf.evaluate_model_accuracy(model, test_loader, device)
+    print(f"Test accuracy: {test_accuracy:.4f}")
+
+    # Always display 20 misclassified images
+    misclassified_images, true_labels, predicted_labels = (
+        uf.collect_misclassified_instances(
+            model, test_loader, device, num_instances=NUM_MISCLASSIFIED
+        )
+    )
+    print(f"Show the first {len(misclassified_images)} misclassified test instances")
+    pf.display_misclassified_images(
+        misclassified_images,
+        true_labels,
+        predicted_labels,
+        model_name="FFN",
+    )
