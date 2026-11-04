@@ -18,10 +18,15 @@ import plot_functions as pf
 MODEL_SEED = 36
 # Number of misclassified images to show
 NUM_MISCLASSIFIED = 20
-
+# Default number of training epochs
+DEFAULT_NUM_EPOCHS = 10
+# Default learning rate for Adam optimizer
+DEFAULT_LEARNING_RATE = 0.001
+# Default batch size for training and testing
+DEFAULT_BATCH_SIZE = 128
 
 ##############################################################################
-#                            FEEDFORWARD NETWORK CLASS
+#                            FEEDFORWARD NETWORK
 ##############################################################################
 
 
@@ -52,11 +57,6 @@ class FeedforwardNetwork(nn.Module):
     def __init__(self, image_channels, image_size, output_size):
         """
         Initialize a feedforward network model.
-
-        Args:
-            image_channels: number of channels of input images, a positive integer
-            image_size: size of input images (height = width), a positive integer
-            output_size: number of output classes, a positive integer
         """
         super().__init__()
 
@@ -164,19 +164,19 @@ if __name__ == "__main__":
     parser.add_argument(
         "--num-epochs",
         type=int,
-        default=10,
+        default=DEFAULT_NUM_EPOCHS,
         help="Number of training epochs",
     )
     parser.add_argument(
         "--learning-rate",
         type=float,
-        default=0.001,
+        default=DEFAULT_LEARNING_RATE,
         help="Learning rate for Adam optimizer",
     )
     parser.add_argument(
         "--batch-size",
         type=int,
-        default=128,
+        default=DEFAULT_BATCH_SIZE,
         help="Batch size for training and testing",
     )
     args = parser.parse_args()
@@ -210,7 +210,7 @@ if __name__ == "__main__":
     torch.manual_seed(MODEL_SEED)
     np.random.seed(MODEL_SEED)
 
-    # Initialize feedforward network model
+    # Initialize the feedforward network model
     model = FeedforwardNetwork(
         image_channels=image_channels, image_size=image_size, output_size=num_classes
     ).to(device)
@@ -219,7 +219,7 @@ if __name__ == "__main__":
     criterion = nn.CrossEntropyLoss()
     optimizer = optim.Adam(model.parameters(), lr=learning_rate)
 
-    # Train model
+    # Train the model
     print(
         f"Training with Adam, number of epochs = {num_epochs}, "
         f"learning rate = {learning_rate}, batch size = {batch_size}"

@@ -18,7 +18,12 @@ import plot_functions as pf
 MODEL_SEED = 36
 # Number of misclassified images to show
 NUM_MISCLASSIFIED = 20
-
+# Default number of training epochs
+DEFAULT_NUM_EPOCHS = 10
+# Default learning rate for Adam optimizer
+DEFAULT_LEARNING_RATE = 0.001
+# Default batch size for training and testing
+DEFAULT_BATCH_SIZE = 128
 
 ##############################################################################
 #                    CONVOLUTIONAL NEURAL NETWORK CLASS
@@ -177,29 +182,30 @@ if __name__ == "__main__":
 
     # Parse command-line arguments
     parser = argparse.ArgumentParser(
-        description="Train a Convolutional Neural Network for image (MNIST) classification",
+        description="Train a Convolutional Neural Network (CNN) "
+        "for image (MNIST) classification using PyTorch",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
     parser.add_argument(
         "--num-epochs",
         type=int,
-        default=10,
+        default=DEFAULT_NUM_EPOCHS,
         help="Number of training epochs",
     )
     parser.add_argument(
         "--learning-rate",
         type=float,
-        default=0.001,
+        default=DEFAULT_LEARNING_RATE,
         help="Learning rate for Adam optimizer",
     )
     parser.add_argument(
         "--batch-size",
         type=int,
-        default=128,
+        default=DEFAULT_BATCH_SIZE,
         help="Batch size for training and testing",
     )
     args = parser.parse_args()
-    print("Train a Convolutional Neural Network for image (MNIST) classification")
+    print("Train a CNN for MNIST classification using PyTorch")
 
     # Set device for computing, CUDA, MPS, or CPU
     device = uf.set_device()
@@ -229,7 +235,7 @@ if __name__ == "__main__":
     torch.manual_seed(MODEL_SEED)
     np.random.seed(MODEL_SEED)
 
-    # Initialize convolutional neural network model
+    # Initialize the convolutional neural network model
     model = ConvolutionalNeuralNetwork(
         image_channels=image_channels, image_size=image_size, output_size=num_classes
     ).to(device)
@@ -238,7 +244,7 @@ if __name__ == "__main__":
     criterion = nn.CrossEntropyLoss()
     optimizer = optim.Adam(model.parameters(), lr=learning_rate)
 
-    # Train model
+    # Train the model
     print(
         f"Training with Adam, number of epochs = {num_epochs}, "
         f"learning rate = {learning_rate}, batch size = {batch_size}"
