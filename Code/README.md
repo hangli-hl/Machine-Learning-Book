@@ -1,4 +1,4 @@
-# Codes 代码
+# Code 代码
 
 This directory contains code implementations of the algorithms in the book *Machine Learning Methods*. This is the first batch of code to be released, and more will be added gradually. The code implementations are closely integrated with the book's content, making it convenient for readers to further study the algorithms and conduct related experiments.
 
@@ -9,7 +9,7 @@ This directory contains code implementations of the algorithms in the book *Mach
 > **声明：** 本代码库由作者在 AI 辅助下完成。作者投入了大量精力进行算法实现设计、统一规范化以及易读性优化。
 >
 
-## Contents 目录
+## Content 目录
 
 - [Supervised Learning](./Supervised_Learning/) - 监督学习
 - [Unsupervised Learning](./Unsupervised_Learning/) - 无监督学习
