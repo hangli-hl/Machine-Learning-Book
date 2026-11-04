@@ -44,13 +44,18 @@ class DiffusionUNet:
     Utilities for the DDPM (denoising diffusion probabilistic model)
     forward and reverse processes with UNet.
 
+    Indexing: the formulas use the 1-based steps t = 1, ..., T of the DDPM
+    paper, with x_0 the clean data. The code is 0-based: array index k = t - 1,
+    so betas[k] is beta_t, and the `t` arguments of q_sample / p_sample are
+    these 0-based indices k.
+
     Forward process (q_sample):
         x_t = sqrt(alpha_bar_t) * x_0 + sqrt(1 - alpha_bar_t) * z
 
     Reverse process (p_sample / p_sample_loop):
         x_{t-1} = (x_t - beta_t / sqrt(1 - alpha_bar_t) * noise_theta)
                   / sqrt(alpha_t) + sqrt(beta_t) * z
-    No noise is added at the last step (t = 0, deterministic):
+    No noise is added at the last step (t = 1, code index 0, deterministic):
         x_0 = (x_1 - beta_1 / sqrt(1 - alpha_bar_1) * noise_theta) / sqrt(alpha_1)
 
     - x_t: state at timestep t
@@ -96,7 +101,7 @@ class DiffusionUNet:
         Args:
             x_0: clean images of shape (batch_size, image_channels, image_size, image_size)
             noise: Gaussian noise of the same shape as x_0
-            t: diffusion timesteps of shape (batch_size,)
+            t: 0-based diffusion timestep indices, shape (batch_size,)
 
         Returns:
             x_t: noisy images at timestep t, same shape as x_0
@@ -116,7 +121,7 @@ class DiffusionUNet:
             model: trained noise-prediction network
             x: states at timestep t, shape (batch_size, image_channels,
                 image_size, image_size)
-            t: current timestep, an integer or scalar tensor
+            t: current 0-based timestep index, an integer or scalar tensor
 
         Returns:
             x_prev: states at timestep t-1, shape (batch_size, image_channels,
@@ -232,13 +237,13 @@ def train_ddpm(
 
             # Sample noise and random timesteps, then compute the noisy images
             noise = torch.randn_like(images)
-            timesteps = torch.randint(
+            t = torch.randint(
                 0, diffusion.num_timesteps, (images.size(0),), device=device
             )
-            noisy_images = diffusion.q_sample(images, noise, timesteps)
+            x_t = diffusion.q_sample(images, noise, t)
 
             # Predict the noise and compute the MSE objective
-            pred_noise = model(noisy_images, timesteps)
+            pred_noise = model(x_t, t)
             loss = criterion(pred_noise, noise)
 
             # Backward pass and optimization
@@ -278,7 +283,6 @@ def generate_samples_ddpm(model, diffusion, num_gen_images, epoch, num_epochs):
         epoch: current epoch index, a non-negative integer
         num_epochs: total number of epochs, a positive integer
     """
-
     # Set the model to evaluation mode
     model.eval()
 

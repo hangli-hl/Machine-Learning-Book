@@ -19,7 +19,7 @@ import unet
 MODEL_NAME = "DDPM-1D"
 # Random seed for reproducibility
 MODEL_SEED = 28
-# Default number of training samples to generate
+# Default number of training samples
 DEFAULT_NUM_SAMPLES = 2000
 # Default number of training iterations
 DEFAULT_NUM_ITERATIONS = 2000
@@ -35,7 +35,7 @@ DEFAULT_NUM_TIMESTEPS = 1000
 DEFAULT_BETA_START = 0.0001
 # Default last value of the linear beta schedule
 DEFAULT_BETA_END = 0.02
-# Default number of generated samples to create
+# Default number of samples to generate
 DEFAULT_NUM_GEN_SAMPLES = 3000
 
 ##############################################################################
@@ -48,13 +48,18 @@ class Diffusion1D:
     Utilities for the 1D DDPM (denoising diffusion probabilistic model)
     forward and reverse processes.
 
+    Indexing: the formulas use the 1-based steps t = 1, ..., T of the DDPM
+    paper, with x_0 the clean data. The code is 0-based: array index k = t - 1,
+    so betas[k] is beta_t, and the `t` arguments of q_sample / p_sample are
+    these 0-based indices k.
+
     Forward process (q_sample):
         x_t = sqrt(alpha_bar_t) * x_0 + sqrt(1 - alpha_bar_t) * z
 
     Reverse process (p_sample / p_sample_loop):
         x_{t-1} = (x_t - beta_t / sqrt(1 - alpha_bar_t) * noise_theta)
                   / sqrt(alpha_t) + sqrt(beta_t) * z
-    No noise is added at the last step (t = 0, deterministic):
+    No noise is added at the last step (t = 1, code index 0, deterministic):
         x_0 = (x_1 - beta_1 / sqrt(1 - alpha_bar_1) * noise_theta) / sqrt(alpha_1)
 
     - x_t: state at timestep t
@@ -100,10 +105,10 @@ class Diffusion1D:
         Args:
             x_0: clean samples, shape (batch_size, 1)
             noise: Gaussian noise, shape (batch_size, 1)
-            t: timesteps, shape (batch_size,)
+            t: 0-based diffusion timestep indices, shape (batch_size,)
 
         Returns:
-            x_t: noisy samples at timestep t, shape (batch_size, 1)
+            x_t: noisy samples at timestep t, same shape as x_0
         """
         # x_t = sqrt(alpha_bar_t) * x_0 + sqrt(1 - alpha_bar_t) * noise
         sqrt_alpha_bar_t = self.sqrt_alphas_cumprod[t].reshape(-1, 1)
@@ -119,7 +124,7 @@ class Diffusion1D:
         Args:
             model: trained noise-prediction network
             x: states at timestep t, shape (batch_size, 1)
-            t: current timestep, an integer or scalar tensor
+            t: current 0-based timestep index, an integer or scalar tensor
 
         Returns:
             x_prev: states at timestep t-1, shape (batch_size, 1)
@@ -223,15 +228,13 @@ def train_ddpm(
         indices = torch.randint(0, num_samples, (batch_size,))
         x_0 = data[indices].to(device)
 
-        # Sample random timesteps and predict corresponding noisy data
-        timesteps = torch.randint(
-            0, diffusion.num_timesteps, (batch_size,), device=device
-        )
+        # Sample noise and random timesteps, then compute the noisy data
         noise = torch.randn_like(x_0)
-        noisy_data = diffusion.q_sample(x_0, noise, timesteps)
+        t = torch.randint(0, diffusion.num_timesteps, (x_0.size(0),), device=device)
+        x_t = diffusion.q_sample(x_0, noise, t)
 
         # Predict the noise and compute the MSE objective
-        pred_noise = model(noisy_data, timesteps)
+        pred_noise = model(x_t, t)
         loss = criterion(pred_noise, noise)
 
         # Backward pass and optimization
@@ -245,7 +248,7 @@ def train_ddpm(
         # Print progress
         if (iteration + 1) % 200 == 0:
             print(
-                f"Iteration [{iteration + 1}/{num_iterations}], Loss: {loss.item():.6f}"
+                f"Iteration [{iteration + 1}/{num_iterations}], Loss: {loss.item():.4f}"
             )
 
     return loss_log
@@ -284,6 +287,7 @@ def generate_forward_trajs(data, diffusion, num_trajs):
     return trajs
 
 
+@torch.no_grad()
 def generate_reverse_trajs(model, diffusion, num_trajs):
     """
     Generate reverse diffusion trajectories for visualization.
@@ -317,7 +321,7 @@ if __name__ == "__main__":
         "--num-samples",
         type=int,
         default=DEFAULT_NUM_SAMPLES,
-        help="Number of training samples to generate",
+        help="Number of training samples",
     )
     parser.add_argument(
         "--num-iterations",
@@ -365,7 +369,7 @@ if __name__ == "__main__":
         "--num-gen-samples",
         type=int,
         default=DEFAULT_NUM_GEN_SAMPLES,
-        help="Number of generated samples to create",
+        help="Number of samples to generate",
     )
     args = parser.parse_args()
     print("Train a DDPM for 1D GMM data generation")

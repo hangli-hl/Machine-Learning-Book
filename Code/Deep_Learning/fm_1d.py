@@ -19,9 +19,10 @@ import unet
 MODEL_NAME = "FM-1D"
 # Random seed for reproducibility
 MODEL_SEED = 28
-# Supported ODE solvers, in increasing order of accuracy
+# Supported ODE solvers: first order (euler), second order (midpoint, heun),
+# fourth order (rk4)
 SOLVERS = ("euler", "midpoint", "heun", "rk4")
-# Default number of training samples to generate
+# Default number of training samples
 DEFAULT_NUM_SAMPLES = 2000
 # Default number of training iterations
 DEFAULT_NUM_ITERATIONS = 5000
@@ -37,7 +38,7 @@ DEFAULT_NUM_STEPS = 100
 DEFAULT_SOLVER = "rk4"
 # Default minimum noise level of the OT conditional path
 DEFAULT_SIGMA_MIN = 0.0
-# Default number of generated samples to create
+# Default number of samples to generate
 DEFAULT_NUM_GEN_SAMPLES = 3000
 
 ##############################################################################
@@ -317,9 +318,9 @@ def train_fm(
         indices = torch.randint(0, num_samples, (batch_size,))
         x_1 = data[indices].to(device)
 
-        # Sample random path times and noise, then run the flow matching process
-        t = torch.rand(batch_size, device=device)
+        # Sample noise and random path times, then run the flow matching process
         noise = torch.randn_like(x_1)
+        t = torch.rand(x_1.size(0), device=device)
         x_t, u_t = flow_matching.compute_location_and_velocity(x_1, t, noise)
 
         # Predict the velocity and compute the MSE objective
@@ -336,10 +337,8 @@ def train_fm(
 
         # Print progress
         if (iteration + 1) % 500 == 0:
-            mean_loss = np.mean(loss_log[-500:])
             print(
-                f"Iteration [{iteration + 1}/{num_iterations}], Loss: {loss.item():.6f}, "
-                f"Mean(last 500): {mean_loss:.6f}"
+                f"Iteration [{iteration + 1}/{num_iterations}], Loss: {loss.item():.4f}"
             )
 
     return loss_log
@@ -353,8 +352,11 @@ def train_fm(
 @torch.no_grad()
 def compute_path_trajs(flow_matching, data, num_trajs):
     """
-    Sample conditional paths x_t that linearly interpolate noise x_0 (t = 0)
-    and data x_1 (t = 1).
+    Sample conditional paths x_t that linearly interpolate a noise sample
+    x_0 (t = 0) and a data sample x_1 (t = 1).
+
+    At t = 1 the path ends at x_1 + sigma_min * x_0, which equals the clean
+    data x_1 only when sigma_min = 0.
 
     The trajectories are the training paths, not outputs of the
     learned model.
@@ -366,7 +368,8 @@ def compute_path_trajs(flow_matching, data, num_trajs):
 
     Returns:
         trajs: stacked trajectories, shape (num_steps + 1, num_trajs, 1)
-            Row 0 is t = 1 (data) and the last row is t = 0 (noise)
+            Row 0 is t = 1 (data, plus sigma_min * noise) and the last
+            row is t = 0 (noise)
     """
     num_steps = flow_matching.num_steps
     device = flow_matching.device
@@ -483,7 +486,7 @@ if __name__ == "__main__":
         "--num-samples",
         type=int,
         default=DEFAULT_NUM_SAMPLES,
-        help="Number of training samples to generate",
+        help="Number of training samples",
     )
     parser.add_argument(
         "--num-iterations",
@@ -532,7 +535,7 @@ if __name__ == "__main__":
         "--num-gen-samples",
         type=int,
         default=DEFAULT_NUM_GEN_SAMPLES,
-        help="Number of generated samples to create",
+        help="Number of samples to generate",
     )
     args = parser.parse_args()
     print("Train an FM model for 1D GMM data generation")
@@ -599,6 +602,7 @@ if __name__ == "__main__":
     # Number of trajectories to compute
     num_trajs = min(25, num_samples)
 
+    # Plot the conditional path (no model) from data to noise
     print("Plotting conditional path (no model) from data to noise")
     conditional_path_trajs = compute_path_trajs(flow_matching, data, num_trajs)
     pf.plot_1d_trajs(
@@ -610,6 +614,7 @@ if __name__ == "__main__":
         num_trajs=num_trajs,
     )
 
+    # Plot the generative ODE from noise to data
     print("Plotting generative ODE from noise to data")
     generative_ode_trajs = generate_ode_trajs(model, flow_matching, num_trajs)
     pf.plot_1d_trajs(
@@ -621,6 +626,7 @@ if __name__ == "__main__":
         num_trajs=num_trajs,
     )
 
+    # Plot the inverse ODE from data to noise
     print("Plotting inverse ODE from data to noise")
     inverse_ode_trajs = invert_ode_trajs(model, flow_matching, data, num_trajs)
     pf.plot_1d_trajs(

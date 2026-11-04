@@ -83,7 +83,7 @@ class ScoreUNet(nn.Module):
         Compute the score at the given noise level.
 
         Args:
-            x: images of shape (batch_size, image_channels, height, width)
+            x: images of shape (batch_size, image_channels, image_size, image_size)
             noise_level: noise level index of shape (batch_size,)
 
         Returns:
@@ -109,7 +109,7 @@ class ScoreMatchingUNet:
         q_sigma(x_tilde | x) = N(x_tilde; x, sigma_i^2 I)
         x_tilde = x_0 + sigma_i * epsilon
 
-    Reverse process (annealed Langevin dynamics, predictor-corrector scheme):
+    Reverse process (predictor-corrector sampling, the corrector is Langevin dynamics):
         For each noise level i = L-1 .. 0:
           Predictor (reverse diffusion, sigma_i -> sigma_{i-1}):
             x <- x + (sigma_i^2 - sigma_{i-1}^2) * s_theta(x, sigma_i)
@@ -157,7 +157,7 @@ class ScoreMatchingUNet:
             x_tilde = x_0 + sigma_i * epsilon
 
         Args:
-            x_0: clean images of shape (batch_size, image_channels, height, width)
+            x_0: clean images of shape (batch_size, image_channels, image_size, image_size)
             noise: Gaussian noise of the same shape as x_0
             noise_level: noise level index, shape (batch_size,)
 
@@ -169,14 +169,14 @@ class ScoreMatchingUNet:
 
     def langevin_step(self, model, x, noise_level, target_snr):
         """
-        Corrector: one Langevin dynamics step with an adaptive step size.
+        Corrector: one Langevin step with an adaptive step size.
             s = s_theta(x, sigma_i)
             step = 2 * (target_snr * ||z|| / ||s||) ** 2
             x <- x + step * s + sqrt(2 * step) * z,   z ~ N(0, I)
 
         Args:
             model: trained score network
-            x: current states, shape (batch_size, image_channels, height, width)
+            x: current states, shape (batch_size, image_channels, image_size, image_size)
             noise_level: noise level index, a non-negative integer
             target_snr: target signal-to-noise ratio for the step size, a positive float
 
@@ -195,7 +195,7 @@ class ScoreMatchingUNet:
         return x + step * scores + torch.sqrt(2.0 * step) * z
 
     @torch.no_grad()
-    def annealed_langevin_dynamics(
+    def predictor_corrector_sampling(
         self,
         model,
         num_gen_images,
@@ -204,10 +204,9 @@ class ScoreMatchingUNet:
         return_traj=False,
     ):
         """
-        Generate images with annealed Langevin dynamics in the standard
-        predictor-corrector order: each predictor step is followed by
-        num_langevin_steps corrector steps at the noise level the predictor
-        moved to.
+        Generate images with the predictor-corrector sampler: each predictor step
+        is followed by num_langevin_steps corrector steps at the noise level
+        the predictor moved to.
 
         Args:
             model: trained score network
@@ -223,7 +222,7 @@ class ScoreMatchingUNet:
                 (num_noise_levels + 1, num_gen_images, image_channels,
                 image_size, image_size); one snapshot per noise level, taken
                 after the corrector steps, plus the initial noise at trajs[0].
-                Unlike smld_1d, the individual corrector steps are not recorded,
+                The individual corrector steps are not recorded,
                 so the snapshot count does not grow with num_langevin_steps.
         """
         model.eval()
@@ -320,17 +319,15 @@ def train_smld(
 
             # Sample noise and noise levels, then run the forward process
             noise = torch.randn_like(images)
-            noise_levels = torch.randint(
+            t = torch.randint(
                 0, score_matching.num_noise_levels, (images.size(0),), device=device
             )
-            x_tilde = score_matching.add_noise(images, noise, noise_levels)
+            x_tilde = score_matching.add_noise(images, noise, t)
 
             # Calculate the denoising score matching loss
             # scaled_scores = sigma * s_theta = raw network output; target is -noise
-            scores = model(x_tilde, noise_levels)
-            scaled_scores = scores * score_matching.sigmas[noise_levels].reshape(
-                -1, 1, 1, 1
-            )
+            scores = model(x_tilde, t)
+            scaled_scores = scores * score_matching.sigmas[t].reshape(-1, 1, 1, 1)
             loss = criterion(scaled_scores, -noise)
 
             # Backward pass and optimization
@@ -393,7 +390,7 @@ def generate_samples_smld(
 
     with torch.no_grad():
         # Images are in the tanh range [-1, 1]; plot_generated_images rescales them
-        gen_images = score_matching.annealed_langevin_dynamics(
+        gen_images = score_matching.predictor_corrector_sampling(
             model,
             num_gen_images,
             num_langevin_steps,
@@ -551,17 +548,17 @@ if __name__ == "__main__":
     print(f"Generated images saved to {pf.GEN_DIR}")
 
     # Plot training loss curve
-    print("Plotting training loss")
+    print("Plotting training loss curve")
     pf.plot_training_curve(
         loss_log, MODEL_NAME, y_label="denoising score matching loss"
     )
 
-    # Show the generated images during the annealed Langevin dynamics
+    # Show the generated images during predictor-corrector sampling
     print("Plotting generation progress")
     num_progress_rows = 8  # One row per trajectory
     num_progress_cols = 8  # One column per snapshot in time
 
-    _, trajs = score_matching.annealed_langevin_dynamics(
+    _, trajs = score_matching.predictor_corrector_sampling(
         model,
         num_progress_rows,
         num_langevin_steps,

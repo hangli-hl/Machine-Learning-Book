@@ -42,7 +42,7 @@ DEFAULT_SIGMA_MAX = 10.0
 DEFAULT_NUM_LANGEVIN_STEPS = 10
 # Default target signal-to-noise ratio for the Langevin corrector step size
 DEFAULT_TARGET_SNR = 0.10
-# Default number of generated samples to create
+# Default number of samples to generate
 DEFAULT_NUM_GEN_SAMPLES = 3000
 
 ##############################################################################
@@ -107,7 +107,7 @@ class ScoreMatching1D:
         q_sigma(x_tilde | x) = N(x_tilde; x, sigma_i^2 I)
         x_tilde = x_0 + sigma_i * epsilon
 
-    Reverse process (annealed Langevin dynamics, predictor-corrector scheme):
+    Reverse process (predictor-corrector sampling, the corrector is Langevin dynamics):
         For each noise level i = L-1 .. 0:
           Predictor (reverse diffusion, sigma_i -> sigma_{i-1}):
             x <- x + (sigma_i^2 - sigma_{i-1}^2) * s_theta(x, sigma_i)
@@ -167,7 +167,7 @@ class ScoreMatching1D:
 
     def langevin_step(self, model, x, noise_level, target_snr):
         """
-        Corrector: one Langevin dynamics step with an adaptive step size.
+        Corrector: one Langevin step with an adaptive step size.
             s = s_theta(x, sigma_i)
             step = 2 * (target_snr * ||z|| / ||s||) ** 2
             x <- x + step * s + sqrt(2 * step) * z,   z ~ N(0, I)
@@ -193,7 +193,7 @@ class ScoreMatching1D:
         return x + step * scores + torch.sqrt(2.0 * step) * z
 
     @torch.no_grad()
-    def annealed_langevin_dynamics(
+    def predictor_corrector_sampling(
         self,
         model,
         num_gen_samples,
@@ -202,10 +202,9 @@ class ScoreMatching1D:
         return_traj=False,
     ):
         """
-        Generate data with annealed Langevin dynamics in the standard
-        predictor-corrector order: each predictor step is followed by
-        num_langevin_steps corrector steps at the noise level the predictor
-        moved to.
+        Generate data with the predictor-corrector sampler: each predictor step
+        is followed by num_langevin_steps corrector steps at the noise level
+        the predictor moved to.
 
         Args:
             model: trained score network
@@ -306,15 +305,15 @@ def train_smld(
 
         # Sample noise and noise levels, then run the forward process
         noise = torch.randn_like(x_0)
-        noise_levels = torch.randint(
+        t = torch.randint(
             0, score_matching.num_noise_levels, (x_0.size(0),), device=device
         )
-        x_tilde = score_matching.add_noise(x_0, noise, noise_levels)
+        x_tilde = score_matching.add_noise(x_0, noise, t)
 
         # Calculate the denoising score matching loss
         # scaled_scores = sigma * s_theta = raw network output; target is -noise
-        scores = model(x_tilde, noise_levels)
-        scaled_scores = scores * score_matching.sigmas[noise_levels].reshape(-1, 1)
+        scores = model(x_tilde, t)
+        scaled_scores = scores * score_matching.sigmas[t].reshape(-1, 1)
         loss = criterion(scaled_scores, -noise)
 
         # Backward pass and optimization
@@ -328,7 +327,7 @@ def train_smld(
         # Print progress
         if (iteration + 1) % 500 == 0:
             print(
-                f"Iteration [{iteration + 1}/{num_iterations}], Loss: {loss.item():.6f}"
+                f"Iteration [{iteration + 1}/{num_iterations}], Loss: {loss.item():.4f}"
             )
 
     return loss_log
@@ -369,11 +368,12 @@ def generate_forward_trajs(data, score_matching, num_trajs):
     return trajs
 
 
+@torch.no_grad()
 def generate_reverse_trajs(
     model, score_matching, num_trajs, num_langevin_steps, target_snr
 ):
     """
-    Generate reverse trajectories (annealed Langevin dynamics) for visualization.
+    Generate reverse trajectories (predictor-corrector sampling) for visualization.
 
     Args:
         model: trained score network
@@ -387,7 +387,7 @@ def generate_reverse_trajs(
             (1 + num_noise_levels + (num_noise_levels - 1) * num_langevin_steps,
             num_trajs, 1)
     """
-    _, trajs = score_matching.annealed_langevin_dynamics(
+    _, trajs = score_matching.predictor_corrector_sampling(
         model,
         num_trajs,
         num_langevin_steps,
@@ -395,6 +395,36 @@ def generate_reverse_trajs(
         return_traj=True,
     )
     return trajs
+
+
+##############################################################################
+#                            SCORE FUNCTION
+##############################################################################
+
+
+@torch.no_grad()
+def compute_score_function(model, grid, noise_level):
+    """
+    Compute the learned score on a grid at a fixed noise level.
+
+    Args:
+        model: trained score network
+        grid: states at which the score is evaluated, shape (num_points, 1)
+        noise_level: noise level index, a non-negative integer
+
+    Returns:
+        scores: learned scores, numpy array of shape (num_points,)
+    """
+    model.eval()
+
+    levels = torch.full(
+        (grid.size(0),), noise_level, dtype=torch.long, device=grid.device
+    )
+    scores = model(grid, levels).cpu().numpy().reshape(-1)
+
+    model.train()
+
+    return scores
 
 
 ##############################################################################
@@ -474,7 +504,7 @@ if __name__ == "__main__":
         "--num-gen-samples",
         type=int,
         default=DEFAULT_NUM_GEN_SAMPLES,
-        help="Number of generated samples to create",
+        help="Number of samples to generate",
     )
     args = parser.parse_args()
     print("Train an SMLD model for 1D GMM data generation")
@@ -537,7 +567,7 @@ if __name__ == "__main__":
     )
 
     # Plot training loss curve
-    print("Plotting training loss")
+    print("Plotting training loss curve")
     pf.plot_training_curve(
         loss_log, MODEL_NAME, y_label="denoising score matching loss"
     )
@@ -575,8 +605,7 @@ if __name__ == "__main__":
     # The score at the smallest noise level approximates the score of the clean data
     print("Plotting learned score function")
     grid = torch.linspace(-10.0, 10.0, 400, device=device).reshape(-1, 1)
-    min_level = torch.zeros((grid.size(0),), dtype=torch.long, device=device)
-    predicted = model(grid, min_level).detach().cpu().numpy().ravel()
+    predicted = compute_score_function(model, grid, noise_level=0)
     true = dc.gaussian_mixture_1d_score(grid).detach().cpu().numpy().ravel()
     pf.plot_1d_score_function(
         grid.detach().cpu().numpy().ravel(),
@@ -587,13 +616,13 @@ if __name__ == "__main__":
         sigma=score_matching.sigmas[0].item(),
     )
 
-    # Sample with the annealed Langevin dynamics
-    print("Sampling with annealed Langevin dynamics")
-    samples = score_matching.annealed_langevin_dynamics(
+    # Sample with the predictor-corrector sampler
+    print("Sampling with predictor-corrector sampler")
+    samples = score_matching.predictor_corrector_sampling(
         model,
         num_gen_samples,
         num_langevin_steps,
-        target_snr=target_snr,
+        target_snr,
     )
     samples = samples.detach().cpu()
 

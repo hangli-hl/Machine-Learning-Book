@@ -19,7 +19,8 @@ import unet
 MODEL_NAME = "FM-UNet"
 # Random seed for reproducibility
 MODEL_SEED = 28
-# Supported ODE solvers, in increasing order of accuracy
+# Supported ODE solvers: first order (euler), second order (midpoint, heun),
+# fourth order (rk4)
 SOLVERS = ("euler", "midpoint", "heun", "rk4")
 # Default number of training epochs
 DEFAULT_NUM_EPOCHS = 30
@@ -50,7 +51,7 @@ class FlowMatchingUNet:
         x_t = (1 - (1 - sigma_min) * t) * x_0 + t * x_1
         u_t = x_1 - (1 - sigma_min) * x_0
         velocity field is v_theta(x_t, t)
-        loss function is L = Σ || v_theta(x_t, t) - u_t ||^2
+        loss function is L = E || v_theta(x_t, t) - u_t ||^2
 
     Generation:
         x_{t+dt} = x_t + dt * v_theta(x_t, t)
