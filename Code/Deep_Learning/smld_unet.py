@@ -22,10 +22,27 @@ MODEL_NAME = "SMLD-UNet"
 MODEL_SEED = 28
 # A small constant to avoid division by zero
 EPS = 1e-12
-
+# Default number of training epochs
+DEFAULT_NUM_EPOCHS = 30
+# Default learning rate for Adam optimizer
+DEFAULT_LEARNING_RATE = 0.0001
+# Default batch size for training
+DEFAULT_BATCH_SIZE = 128
+# Default number of channels at the full resolution of the UNet
+DEFAULT_BASE_CHANNELS = 64
+# Default number of noise levels in the geometric schedule
+DEFAULT_NUM_NOISE_LEVELS = 200
+# Default smallest noise level
+DEFAULT_SIGMA_MIN = 0.005
+# Default largest noise level
+DEFAULT_SIGMA_MAX = 15.0
+# Default number of Langevin corrector steps per noise level
+DEFAULT_NUM_LANGEVIN_STEPS = 1
+# Default target signal-to-noise ratio for the Langevin corrector step size
+DEFAULT_TARGET_SNR = 0.16
 
 ##############################################################################
-#                            SCORE NETWORK CLASS
+#                           SCORE NETWORK CLASS
 ##############################################################################
 
 
@@ -42,7 +59,7 @@ class ScoreUNet(nn.Module):
         image_channels: number of image channels, a positive integer
         image_size: size of input images (height = width), a positive integer
         sigmas: geometric noise schedule, shape (num_noise_levels,), ascending
-        unet: underlying UNet producing unscaled predicted fields
+        unet: UNet producing unscaled predicted fields
     """
 
     def __init__(self, image_channels, image_size, sigmas, base_channels):
@@ -70,15 +87,16 @@ class ScoreUNet(nn.Module):
             noise_level: noise level index of shape (batch_size,)
 
         Returns:
-            score: predicted score, same shape as x
+            score: score estimate, same shape as x
         """
+        # Predicted score scaled by the corresponding noise level
         score = self.unet(x, noise_level)
         sigma = self.sigmas[noise_level].reshape(-1, 1, 1, 1)
         return score / sigma
 
 
 ##############################################################################
-#               SCORE MATCHING WITH LANGEVIN DYNAMICS UTILITIES
+#             SCORE MATCHING WITH LANGEVIN DYNAMICS UTILITIES
 ##############################################################################
 
 
@@ -91,20 +109,22 @@ class ScoreMatchingUNet:
         q_sigma(x_tilde | x) = N(x_tilde; x, sigma_i^2 I)
         x_tilde = x_0 + sigma_i * epsilon
 
-    Reverse process (annealed Langevin dynamics using a predictor-corrector scheme):
+    Reverse process (annealed Langevin dynamics, predictor-corrector scheme):
         For each noise level i = L-1 .. 0:
-          Corrector (Langevin dynamics):
-            step = 2 * (target_snr * ||z|| / ||s_theta(x, sigma_i)||) ** 2
-            x <- x + step * s_theta(x, sigma_i) + sqrt(2 * step) * z
-          Predictor (reverse diffusion):
+          Predictor (reverse diffusion, sigma_i -> sigma_{i-1}):
             x <- x + (sigma_i^2 - sigma_{i-1}^2) * s_theta(x, sigma_i)
                    + sqrt(sigma_i^2 - sigma_{i-1}^2) * z
-        Final denoising step at the smallest level (i = 0, deterministic):
+          Corrector (M Langevin steps at the new level sigma_{i-1}):
+            step = 2 * (target_snr * ||z|| / ||s_theta(x, sigma_{i-1})||) ** 2
+            x <- x + step * s_theta(x, sigma_{i-1}) + sqrt(2 * step) * z
+        At i = 0 the predictor reduces to the deterministic denoising step
             x <- x + sigma_0^2 * s_theta(x, sigma_0)
+        and the corrector is skipped, since sigma_{-1} = 0 is not a valid
+        noise level for the score network.
 
     Attributes:
         num_noise_levels: number of noise levels, a positive integer
-        sigmas: geometric noise schedule, shape (num_noise_levels,), ascending
+        sigmas: geometric noise schedule of shape (num_noise_levels,), ascending
         device: device to run computations on (CPU or GPU)
     """
 
@@ -114,8 +134,8 @@ class ScoreMatchingUNet:
 
         Args:
             num_noise_levels: number of noise levels, a positive integer
-            sigma_min: smallest noise level in the schedule, a positive float
-            sigma_max: largest noise level in the schedule, a positive float
+            sigma_min: smallest noise level, a positive float
+            sigma_max: largest noise level, a positive float
             device: device to run computations on (CPU or GPU)
         """
         self.num_noise_levels = num_noise_levels
@@ -131,21 +151,21 @@ class ScoreMatchingUNet:
             )
         )
 
-    def add_noise(self, images, noise, noise_level):
+    def add_noise(self, x_0, noise, noise_level):
         """
         Forward process: perturb clean images with Gaussian noise.
             x_tilde = x_0 + sigma_i * epsilon
 
         Args:
-            images: clean images of shape (batch_size, image_channels, height, width)
-            noise: Gaussian noise of the same shape as images
-            noise_level: noise level index of shape (batch_size,)
+            x_0: clean images of shape (batch_size, image_channels, height, width)
+            noise: Gaussian noise of the same shape as x_0
+            noise_level: noise level index, shape (batch_size,)
 
         Returns:
-            noisy_images: noisy images, same shape as images
+            x_tilde: perturbed images, same shape as x_0
         """
-        noise_rates = self.sigmas[noise_level].reshape(-1, 1, 1, 1)
-        return images + noise_rates * noise
+        sigma = self.sigmas[noise_level].reshape(-1, 1, 1, 1)
+        return x_0 + sigma * noise
 
     def langevin_step(self, model, x, noise_level, target_snr):
         """
@@ -197,7 +217,7 @@ class ScoreMatchingUNet:
             return_traj: whether to also return the sampling trajectories, a boolean
 
         Returns:
-            images: generated images in [-1, 1],
+            x: generated images in [-1, 1],
                 shape (num_gen_images, image_channels, image_size, image_size)
             trajs: stacked trajectories (only if return_traj), shape
                 (num_noise_levels + 1, num_gen_images, image_channels,
@@ -208,7 +228,7 @@ class ScoreMatchingUNet:
         """
         model.eval()
 
-        # Start from Gaussian noise scaled by the largest noise level
+        # Start from noise scaled to the largest noise level
         shape = (
             num_gen_images,
             model.image_channels,
@@ -273,19 +293,19 @@ def train_smld(
     Train the score network with denoising score matching.
 
     Args:
-        model: score prediction network
+        model: score network (ScoreUNet)
         training_loader: DataLoader for training data
         num_epochs: number of training epochs, a positive integer
         criterion: loss function (nn.MSELoss)
-        optimizer: optimizer for the network (Adam)
+        optimizer: optimizer (Adam)
         num_langevin_steps: Langevin corrector steps per noise level, a positive integer
         target_snr: target signal-to-noise ratio for the corrector step size, a positive float
-        score_matching: score matching utilities
+        score_matching: score matching utilities with the noise schedule
         device: device to run computations on (CPU or GPU)
         num_gen_images: number of images to generate for evaluation, a positive integer
 
     Returns:
-        loss_log: list of training losses for each batch
+        loss_log: list of training losses for all batches
     """
     loss_log = []
     num_batches = len(training_loader)
@@ -303,11 +323,11 @@ def train_smld(
             noise_levels = torch.randint(
                 0, score_matching.num_noise_levels, (images.size(0),), device=device
             )
-            noisy_images = score_matching.add_noise(images, noise, noise_levels)
+            x_tilde = score_matching.add_noise(images, noise, noise_levels)
 
             # Calculate the denoising score matching loss
             # scaled_scores = sigma * s_theta = raw network output; target is -noise
-            scores = model(noisy_images, noise_levels)
+            scores = model(x_tilde, noise_levels)
             scaled_scores = scores * score_matching.sigmas[noise_levels].reshape(
                 -1, 1, 1, 1
             )
@@ -361,14 +381,13 @@ def generate_samples_smld(
 
     Args:
         model: trained score network
-        score_matching: score matching utilities
+        score_matching: score matching utilities with the noise schedule
         num_langevin_steps: Langevin corrector steps per noise level, a positive integer
         target_snr: target signal-to-noise ratio for the corrector step size, a positive float
         num_gen_images: number of images to generate, a positive integer
         epoch: current epoch, a non-negative integer
         num_epochs: total number of epochs, a positive integer
     """
-
     # Set the model to evaluation mode
     model.eval()
 
@@ -410,55 +429,55 @@ if __name__ == "__main__":
     parser.add_argument(
         "--num-epochs",
         type=int,
-        default=30,
+        default=DEFAULT_NUM_EPOCHS,
         help="Number of training epochs",
     )
     parser.add_argument(
         "--learning-rate",
         type=float,
-        default=0.0001,
+        default=DEFAULT_LEARNING_RATE,
         help="Learning rate for Adam optimizer",
     )
     parser.add_argument(
         "--batch-size",
         type=int,
-        default=128,
+        default=DEFAULT_BATCH_SIZE,
         help="Batch size for training",
     )
     parser.add_argument(
         "--base-channels",
         type=int,
-        default=64,
+        default=DEFAULT_BASE_CHANNELS,
         help="Number of channels at the full resolution of the UNet",
     )
     parser.add_argument(
         "--num-noise-levels",
         type=int,
-        default=200,
-        help="Number of noise levels in the schedule",
+        default=DEFAULT_NUM_NOISE_LEVELS,
+        help="Number of noise levels in the geometric schedule",
     )
     parser.add_argument(
         "--sigma-min",
         type=float,
-        default=0.005,
-        help="Smallest noise level in the schedule",
+        default=DEFAULT_SIGMA_MIN,
+        help="Smallest noise level",
     )
     parser.add_argument(
         "--sigma-max",
         type=float,
-        default=15.0,
-        help="Largest noise level in the schedule",
+        default=DEFAULT_SIGMA_MAX,
+        help="Largest noise level",
     )
     parser.add_argument(
         "--num-langevin-steps",
         type=int,
-        default=1,
+        default=DEFAULT_NUM_LANGEVIN_STEPS,
         help="Number of Langevin corrector steps per noise level",
     )
     parser.add_argument(
         "--target-snr",
         type=float,
-        default=0.16,
+        default=DEFAULT_TARGET_SNR,
         help="Target signal-to-noise ratio for the Langevin corrector step size",
     )
     args = parser.parse_args()
@@ -493,18 +512,19 @@ if __name__ == "__main__":
     torch.manual_seed(MODEL_SEED)
     np.random.seed(MODEL_SEED)
 
-    # Initialize score network and score matching utilities
+    # Initialize the score matching utilities with the geometric noise schedule
     score_matching = ScoreMatchingUNet(num_noise_levels, sigma_min, sigma_max, device)
     print(
         f"Noise schedule: {num_noise_levels} levels, "
         f"sigma from {sigma_min} to {sigma_max}"
     )
 
+    # Initialize the score network
     model = ScoreUNet(
         image_channels, image_size, score_matching.sigmas, base_channels
     ).to(device)
 
-    # Define loss function and optimizer
+    # Define loss function, optimizer, and learning rate
     criterion = nn.MSELoss()
     optimizer = optim.Adam(model.parameters(), lr=learning_rate)
 
@@ -512,7 +532,7 @@ if __name__ == "__main__":
     print(
         f"Training with Adam, number of epochs = {num_epochs}, "
         f"learning rate = {learning_rate}, batch size = {batch_size}, "
-        f"base channels = {base_channels}, number of noise levels = {num_noise_levels}, "
+        f"noise levels = {num_noise_levels}, base channels = {base_channels}, "
         f"Langevin steps per level = {num_langevin_steps}, target SNR = {target_snr}"
     )
     num_gen_images = 36  # Number of images to generate for evaluation
@@ -531,13 +551,13 @@ if __name__ == "__main__":
     print(f"Generated images saved to {pf.GEN_DIR}")
 
     # Plot training loss curve
+    print("Plotting training loss")
     pf.plot_training_curve(
-        loss_log,
-        MODEL_NAME,
-        y_label="denoising score matching loss",
+        loss_log, MODEL_NAME, y_label="denoising score matching loss"
     )
 
     # Show the generated images during the annealed Langevin dynamics
+    print("Plotting generation progress")
     num_progress_rows = 8  # One row per trajectory
     num_progress_cols = 8  # One column per snapshot in time
 
@@ -548,6 +568,7 @@ if __name__ == "__main__":
         target_snr,
         return_traj=True,
     )
+
     pf.plot_generation_progress(
         trajs,
         title=f"{MODEL_NAME}: Generation Progress",

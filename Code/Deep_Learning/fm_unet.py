@@ -1,6 +1,6 @@
-###############################################################################
+##############################################################################
 #                FLOW MATCHING (FM) WITH U-SHAPED NETWORK (UNET)
-###############################################################################
+##############################################################################
 
 
 import argparse
@@ -21,10 +21,23 @@ MODEL_NAME = "FM-UNet"
 MODEL_SEED = 28
 # Supported ODE solvers, in increasing order of accuracy
 SOLVERS = ("euler", "midpoint", "heun", "rk4")
-
+# Default number of training epochs
+DEFAULT_NUM_EPOCHS = 30
+# Default learning rate for Adam optimizer
+DEFAULT_LEARNING_RATE = 0.0001
+# Default batch size for training
+DEFAULT_BATCH_SIZE = 128
+# Default number of channels at the full resolution of the UNet
+DEFAULT_BASE_CHANNELS = 64
+# Default number of ODE integration steps for sampling
+DEFAULT_NUM_STEPS = 50
+# Default ODE solver used for sampling
+DEFAULT_SOLVER = "heun"
+# Default minimum noise level of the OT conditional path
+DEFAULT_SIGMA_MIN = 0.0
 
 ##############################################################################
-#                         FLOW MATCHING UTILITIES
+#                          FLOW MATCHING UTILITIES
 ##############################################################################
 
 
@@ -51,8 +64,9 @@ class FlowMatchingUNet:
     - v_theta: the output of the trained network with parameters theta
 
     Attributes:
-        sigma_min: minimum noise level of the OT conditional path, a float
-        num_steps: default number of ODE integration steps, a positive integer
+        num_steps: number of ODE integration steps, a positive integer
+        sigma_min: noise scale left at t = 1, a float in [0, 1). At t = 1,
+            x_t = x_1 + sigma_min * x_0.
         solver: ODE solver, one of {"euler", "midpoint", "heun", "rk4"}
         device: device to run computations on (CPU or GPU)
     """
@@ -62,7 +76,7 @@ class FlowMatchingUNet:
         Initialize the flow matching utilities.
 
         Args:
-            num_steps: default number of ODE integration steps, a positive integer
+            num_steps: number of ODE integration steps, a positive integer
             sigma_min: minimum noise level of the OT conditional path, a float
             solver: ODE solver, one of {"euler", "midpoint", "heun", "rk4"}
             device: device to run computations on (CPU or GPU)
@@ -80,7 +94,8 @@ class FlowMatchingUNet:
 
     def compute_location_and_velocity(self, x_1, t, x_0):
         """
-        Forward process: sample a point on the conditional path and its velocity.
+        Compute the location and conditional velocity of a point
+        on the conditional path.
 
         Args:
             x_1: clean images of shape (batch_size, image_channels, image_size, image_size)
@@ -89,7 +104,7 @@ class FlowMatchingUNet:
 
         Returns:
             x_t: points on the conditional path at time t, same shape as x_1
-            u_t: velocity targets of the conditional path, same shape as x_1
+            u_t: conditional velocity targets d x_t / dt, same shape as x_1
         """
         # x_t = (1 - (1 - sigma_min) * t) * x_0 + t * x_1
         noise_coeff_t = (1.0 - (1.0 - self.sigma_min) * t).reshape(-1, 1, 1, 1)
@@ -103,10 +118,11 @@ class FlowMatchingUNet:
 
     def pred_velocity(self, model, x, t):
         """
-        Evaluate the learned velocity field at a single time for a batch.
+        Predict the velocity field of a point x at time t using the learned
+        network v_theta(x, t).
 
         Args:
-            model: trained velocity-prediction network
+            model: velocity-prediction network
             x: states at time t, shape (batch_size, image_channels,
                 image_size, image_size)
             t: current time, a float or scalar tensor
@@ -123,18 +139,21 @@ class FlowMatchingUNet:
 
     def ode_step(self, model, x, t, dt):
         """
-        Advance the learned ODE dx/dt = v_theta(x, t) by one step with
-        the selected solver. The direction is determined by the sign of dt.
+        Advance the learned ODE dx/dt = v_theta(x, t) by one step
+        with the selected solver.
+
+        The direction is determined by the sign of dt: dt > 0 moves from noise
+        toward data, dt < 0 moves from data toward noise.
 
         Args:
-            model: trained velocity-prediction network
+            model: velocity-prediction network
             x: states at time t, shape (batch_size, image_channels,
                 image_size, image_size)
             t: current time, a float
-            dt: integration step size, a float
+            dt: signed step size, a float
 
         Returns:
-            x_next: states at time t + dt, same shape as x
+            x_next: approximate states at time t + dt, same shape as x
         """
         # x_{t+dt} = x_t + dt * v_theta(x_t, t), one-stage (Euler) update
         if self.solver == "euler":
@@ -161,19 +180,20 @@ class FlowMatchingUNet:
         return x + dt * (k1 + 2.0 * k2 + 2.0 * k3 + k4) / 6.0
 
     @torch.no_grad()
-    def sample_and_compute_ode(self, model, num_gen_images, return_traj=False):
+    def generate_ode(self, model, num_gen_images, return_traj=False):
         """
-        Generate images by integrating the ODE from noise (t = 0) to data (t = 1).
+        Generation: draw x_0 ~ N(0, I) and advance the learned ODE from
+        t = 0 to t = 1 (noise -> data) with num_steps steps of size 1/num_steps.
 
         Args:
             model: trained velocity-prediction network
             num_gen_images: number of images to generate, a positive integer
-            return_traj: whether to also return the sampling trajectories, a boolean
+            return_traj: whether to also return the trajectories, a boolean
 
         Returns:
-            images: generated images in [-1, 1],
+            x: generated images in [-1, 1],
                 shape (num_gen_images, image_channels, image_size, image_size)
-            trajs: stacked trajectories (only if return_traj), shape
+            trajs: states at all steps (only if return_traj), shape
                 (num_steps + 1, num_gen_images, image_channels,
                 image_size, image_size); trajs[0] is the initial noise and
                 trajs[-1] the final clamped images
@@ -227,17 +247,17 @@ def train_fm(
     Train the flow matching model.
 
     Args:
-        model: velocity-prediction network
+        model: velocity-prediction network (UNet)
         training_loader: DataLoader for training data
         num_epochs: number of training epochs, a positive integer
         criterion: loss function (nn.MSELoss)
-        optimizer: optimizer for the network (Adam)
+        optimizer: optimizer (Adam)
         flow_matching: flow matching utilities with the conditional path
         device: device to run computations on (CPU or GPU)
         num_gen_images: number of images to generate for evaluation, a positive integer
 
     Returns:
-        loss_log: list of training losses for each batch
+        loss_log: list of training losses for all batches
     """
     loss_log = []
     num_batches = len(training_loader)
@@ -250,15 +270,13 @@ def train_fm(
             # Move tensors to device (images are normalized to [-1, 1])
             images = images.to(device)
 
-            # Sample noise and path times, then run the forward process
+            # Sample noise and random path times, then run the flow matching process
             noise = torch.randn_like(images)
-            time = torch.rand(images.size(0), device=device)
-            interm_images, u_t = flow_matching.compute_location_and_velocity(
-                images, time, noise
-            )
+            t = torch.rand(images.size(0), device=device)
+            x_t, u_t = flow_matching.compute_location_and_velocity(images, t, noise)
 
-            # Calculate the velocity prediction loss
-            pred_velocity = model(interm_images, time)
+            # Predict the velocity and compute the MSE objective
+            pred_velocity = model(x_t, t)
             loss = criterion(pred_velocity, u_t)
 
             # Backward pass and optimization
@@ -303,7 +321,7 @@ def generate_samples_fm(model, flow_matching, num_gen_images, epoch, num_epochs)
 
     with torch.no_grad():
         # Images are in the tanh range [-1, 1], which will be re-scaled
-        gen_images = flow_matching.sample_and_compute_ode(model, num_gen_images)
+        gen_images = flow_matching.generate_ode(model, num_gen_images)
 
     # Set the model back to training mode
     model.train()
@@ -334,44 +352,44 @@ if __name__ == "__main__":
     parser.add_argument(
         "--num-epochs",
         type=int,
-        default=30,
+        default=DEFAULT_NUM_EPOCHS,
         help="Number of training epochs",
     )
     parser.add_argument(
         "--learning-rate",
         type=float,
-        default=0.0001,
+        default=DEFAULT_LEARNING_RATE,
         help="Learning rate for Adam optimizer",
     )
     parser.add_argument(
         "--batch-size",
         type=int,
-        default=128,
+        default=DEFAULT_BATCH_SIZE,
         help="Batch size for training",
     )
     parser.add_argument(
         "--base-channels",
         type=int,
-        default=64,
+        default=DEFAULT_BASE_CHANNELS,
         help="Number of channels at the full resolution of the UNet",
     )
     parser.add_argument(
         "--num-steps",
         type=int,
-        default=50,
+        default=DEFAULT_NUM_STEPS,
         help="Number of ODE integration steps for sampling",
     )
     parser.add_argument(
         "--solver",
         type=str,
-        default="heun",
+        default=DEFAULT_SOLVER,
         choices=SOLVERS,
         help="ODE solver used for sampling",
     )
     parser.add_argument(
         "--sigma-min",
         type=float,
-        default=0.0,
+        default=DEFAULT_SIGMA_MIN,
         help="Minimum noise level of the OT conditional path",
     )
     args = parser.parse_args()
@@ -404,14 +422,17 @@ if __name__ == "__main__":
     torch.manual_seed(MODEL_SEED)
     np.random.seed(MODEL_SEED)
 
-    # Initialize velocity-prediction network and flow matching utilities
+    # Initialize the velocity-prediction model and flow matching utilities
     # Continuous times in [0, 1] require condition_scale
     model = unet.UNet(
-        image_channels, image_size, base_channels, condition_scale=1000.0
+        image_channels,
+        image_size,
+        base_channels,
+        condition_scale=1000.0,
     ).to(device)
     flow_matching = FlowMatchingUNet(num_steps, sigma_min, solver, device)
 
-    # Define loss function and optimizer
+    # Define loss function, optimizer, and learning rate
     criterion = nn.MSELoss()
     optimizer = optim.Adam(model.parameters(), lr=learning_rate)
 
@@ -420,7 +441,7 @@ if __name__ == "__main__":
         f"Training with Adam, number of epochs = {num_epochs}, "
         f"learning rate = {learning_rate}, batch size = {batch_size}, "
         f"base channels = {base_channels}, sigma min = {sigma_min}, "
-        f"solver = {solver}, number of ODE steps = {num_steps}"
+        f"solver = {solver}, steps = {num_steps}"
     )
     num_gen_images = 36  # Number of images to generate for evaluation
     loss_log = train_fm(
@@ -436,15 +457,15 @@ if __name__ == "__main__":
     print(f"Generated images saved to {pf.GEN_DIR}")
 
     # Plot training loss curve
+    print("Plotting training loss curve")
     pf.plot_training_curve(loss_log, MODEL_NAME, y_label="MSE loss")
 
     # Show the generated images during the flow matching process
+    print("Plotting generation progress")
     num_progress_rows = 8  # One row per trajectory
     num_progress_cols = 8  # One column per snapshot in time
 
-    _, trajs = flow_matching.sample_and_compute_ode(
-        model, num_progress_rows, return_traj=True
-    )
+    _, trajs = flow_matching.generate_ode(model, num_progress_rows, return_traj=True)
 
     pf.plot_generation_progress(
         trajs,

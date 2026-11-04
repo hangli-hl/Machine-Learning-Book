@@ -19,7 +19,20 @@ import unet
 MODEL_NAME = "DDPM-UNet"
 # Random seed for reproducibility
 MODEL_SEED = 28
-
+# Default number of training epochs
+DEFAULT_NUM_EPOCHS = 30
+# Default learning rate for Adam optimizer
+DEFAULT_LEARNING_RATE = 0.0001
+# Default batch size for training
+DEFAULT_BATCH_SIZE = 128
+# Default number of channels at the full resolution of the UNet
+DEFAULT_BASE_CHANNELS = 64
+# Default number of diffusion timesteps
+DEFAULT_NUM_TIMESTEPS = 1000
+# Default first value of the linear beta schedule
+DEFAULT_BETA_START = 0.0001
+# Default last value of the linear beta schedule
+DEFAULT_BETA_END = 0.02
 
 ##############################################################################
 #                        DIFFUSION PROCESS UTILITIES
@@ -48,12 +61,11 @@ class DiffusionUNet:
 
     Attributes:
         num_timesteps: number of diffusion timesteps, a positive integer
-        betas: variance schedule, shape (num_timesteps,)
+        betas: linear variance schedule, shape (num_timesteps,)
         alphas: 1 - betas, shape (num_timesteps,)
         alphas_cumprod: cumulative product of alphas, shape (num_timesteps,)
         sqrt_alphas_cumprod: square root of alphas_cumprod, shape (num_timesteps,)
-        sqrt_one_minus_alphas_cumprod: square root of 1 - alphas_cumprod,
-            shape (num_timesteps,)
+        sqrt_one_minus_alphas_cumprod: square root of (1 - alphas_cumprod), shape (num_timesteps,)
         device: device to run computations on (CPU or GPU)
     """
 
@@ -70,6 +82,7 @@ class DiffusionUNet:
         self.num_timesteps = num_timesteps
         self.device = device
 
+        # Linear variance schedule and derived quantities
         self.betas = torch.linspace(beta_start, beta_end, num_timesteps, device=device)
         self.alphas = 1.0 - self.betas
         self.alphas_cumprod = torch.cumprod(self.alphas, dim=0)
@@ -78,7 +91,7 @@ class DiffusionUNet:
 
     def q_sample(self, x_0, noise, t):
         """
-        Forward process: sample x_t from q(x_t | x_0), i.e., add noise to clean images.
+        Forward process: sample x_t from q(x_t | x_0).
 
         Args:
             x_0: clean images of shape (batch_size, image_channels, image_size, image_size)
@@ -86,20 +99,18 @@ class DiffusionUNet:
             t: diffusion timesteps of shape (batch_size,)
 
         Returns:
-            noisy_images: noisy images, same shape as x_0
+            x_t: noisy images at timestep t, same shape as x_0
         """
         # x_t = sqrt(alpha_bar_t) * x_0 + sqrt(1 - alpha_bar_t) * noise
         sqrt_alpha_bar_t = self.sqrt_alphas_cumprod[t].reshape(-1, 1, 1, 1)
         sqrt_one_minus_alpha_bar_t = self.sqrt_one_minus_alphas_cumprod[t].reshape(
             -1, 1, 1, 1
         )
-
-        noisy_images = sqrt_alpha_bar_t * x_0 + sqrt_one_minus_alpha_bar_t * noise
-        return noisy_images
+        return sqrt_alpha_bar_t * x_0 + sqrt_one_minus_alpha_bar_t * noise
 
     def p_sample(self, model, x, t):
         """
-        Reverse diffusion: sample x_{t-1} from x_t using the learned model.
+        Reverse process: sample x_{t-1} from x_t using the learned model.
 
         Args:
             model: trained noise-prediction network
@@ -119,7 +130,7 @@ class DiffusionUNet:
 
         # Predict the noise from the noise-prediction network
         t_batch = torch.full(
-            (x.size(0),), t_scalar, device=self.device, dtype=torch.long
+            (x.size(0),), t_scalar, dtype=torch.long, device=self.device
         )
         pred_noise = model(x, t_batch)
 
@@ -144,7 +155,7 @@ class DiffusionUNet:
             return_traj: whether to also return the sampling trajectories, a boolean
 
         Returns:
-            images: generated images in [-1, 1],
+            x: generated images in [-1, 1],
                 shape (num_gen_images, image_channels, image_size, image_size)
             trajs: stacked trajectories (only if return_traj), shape
                 (num_timesteps + 1, num_gen_images, image_channels,
@@ -196,17 +207,17 @@ def train_ddpm(
     Train the denoising diffusion probabilistic model.
 
     Args:
-        model: noise-prediction network
+        model: noise-prediction network (UNet)
         training_loader: DataLoader for training data
         num_epochs: number of training epochs, a positive integer
         criterion: loss function (nn.MSELoss)
-        optimizer: optimizer for the network (Adam)
-        diffusion: diffusion utilities
+        optimizer: optimizer (Adam)
+        diffusion: diffusion utilities with the noise schedule
         device: device to run computations on (CPU or GPU)
         num_gen_images: number of images to generate for evaluation, a positive integer
 
     Returns:
-        loss_log: list of training losses for each batch
+        loss_log: list of training losses for all batches
     """
     loss_log = []
     num_batches = len(training_loader)
@@ -219,14 +230,14 @@ def train_ddpm(
             # Move tensors to device (images are normalized to [-1, 1])
             images = images.to(device)
 
-            # Sample noise and timestep, then predict the noisy images
+            # Sample noise and random timesteps, then compute the noisy images
             noise = torch.randn_like(images)
             timesteps = torch.randint(
                 0, diffusion.num_timesteps, (images.size(0),), device=device
             )
             noisy_images = diffusion.q_sample(images, noise, timesteps)
 
-            # Calculate the noise prediction loss
+            # Predict the noise and compute the MSE objective
             pred_noise = model(noisy_images, timesteps)
             loss = criterion(pred_noise, noise)
 
@@ -304,43 +315,43 @@ if __name__ == "__main__":
     parser.add_argument(
         "--num-epochs",
         type=int,
-        default=30,
+        default=DEFAULT_NUM_EPOCHS,
         help="Number of training epochs",
     )
     parser.add_argument(
         "--learning-rate",
         type=float,
-        default=0.0001,
+        default=DEFAULT_LEARNING_RATE,
         help="Learning rate for Adam optimizer",
     )
     parser.add_argument(
         "--batch-size",
         type=int,
-        default=128,
+        default=DEFAULT_BATCH_SIZE,
         help="Batch size for training",
     )
     parser.add_argument(
         "--base-channels",
         type=int,
-        default=64,
+        default=DEFAULT_BASE_CHANNELS,
         help="Number of channels at the full resolution of the UNet",
     )
     parser.add_argument(
         "--num-timesteps",
         type=int,
-        default=1000,
+        default=DEFAULT_NUM_TIMESTEPS,
         help="Number of diffusion timesteps",
     )
     parser.add_argument(
         "--beta-start",
         type=float,
-        default=0.0001,
+        default=DEFAULT_BETA_START,
         help="First value of the linear beta schedule",
     )
     parser.add_argument(
         "--beta-end",
         type=float,
-        default=0.02,
+        default=DEFAULT_BETA_END,
         help="Last value of the linear beta schedule",
     )
     args = parser.parse_args()
@@ -373,11 +384,11 @@ if __name__ == "__main__":
     torch.manual_seed(MODEL_SEED)
     np.random.seed(MODEL_SEED)
 
-    # Initialize noise-prediction network and diffusion utilities
+    # Initialize the noise-prediction model and diffusion utilities
     model = unet.UNet(image_channels, image_size, base_channels).to(device)
     diffusion = DiffusionUNet(num_timesteps, beta_start, beta_end, device)
 
-    # Define loss function and optimizer
+    # Define loss function, optimizer, and learning rate
     criterion = nn.MSELoss()
     optimizer = optim.Adam(model.parameters(), lr=learning_rate)
 
@@ -385,7 +396,7 @@ if __name__ == "__main__":
     print(
         f"Training with Adam, number of epochs = {num_epochs}, "
         f"learning rate = {learning_rate}, batch size = {batch_size}, "
-        f"base channels = {base_channels}, number of timesteps = {num_timesteps}, "
+        f"number of timesteps = {num_timesteps}, base channels = {base_channels}, "
         f"beta start = {beta_start}, beta end = {beta_end}"
     )
     num_gen_images = 36  # Number of images to generate for evaluation
@@ -402,9 +413,11 @@ if __name__ == "__main__":
     print(f"Generated images saved to {pf.GEN_DIR}")
 
     # Plot training loss curve
+    print("Plotting training loss curve")
     pf.plot_training_curve(loss_log, MODEL_NAME, y_label="MSE loss")
 
     # Show the generated images during the reverse diffusion process
+    print("Plotting generation progress")
     num_progress_rows = 8  # One row per trajectory
     num_progress_cols = 8  # One column per snapshot in time
 
