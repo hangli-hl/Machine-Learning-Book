@@ -662,12 +662,12 @@ if __name__ == "__main__":
         y_label="log-likelihood",
         twin_y_label="acceptance rate",
         method_name="GMM with MH",
-        file_name="gmm-mh-curve.png",
+        file_name="gmm_mh_curve.png",
         start_iteration=model.burn_in,
     )
 
     # Visualize the parameter trajectory in 2D using PCA
-    pf.visualize_parameter_space_mh(model, file_name="gmm-mh-traj.png")
+    pf.visualize_parameter_space_mh(model, file_name="gmm_mh_traj.png")
 
     # Evaluate the clustering against the true labels. ARI is invariant to any
     # permutation of the component ids, so no label matching is needed here.
@@ -685,5 +685,5 @@ if __name__ == "__main__":
             model.assignments,
             true_labels=training_labels,
             method_name="GMM with MH",
-            file_name="gmm-mh-clusters.png",
+            file_name="gmm_mh_clusters.png",
         )

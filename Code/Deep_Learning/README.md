@@ -1,10 +1,8 @@
-## Codes/Deep_Learning/README.md
-
 # Deep Learning Methods
 
 This directory contains code implementations of the deep learning algorithms presented in *Machine Learning Methods*. It is still under construction, and more implementations will be added.
 
-The two from-scratch feedforward networks use NumPy only; all other models are built with PyTorch. Each model is a standalone script with a command-line interface, so one command runs a full train / visualize / evaluate cycle.
+The two feedforward networks `ffn_binary.py` and `ffn_multiclass.py` are implemented from scratch with NumPy, with scikit-learn used only for the data; all other models are built with PyTorch. Each model is a standalone script with a command-line interface, so one command runs a full train / visualize / evaluate cycle.
 
 ## Contents
 
@@ -57,7 +55,7 @@ The last four files are libraries imported by the model scripts; all the others 
 
 ## Requirements
 
-Python 3.8+ with `numpy`, `torch`, `torchvision`, `scikit-learn` and `matplotlib`.
+Python 3.11+ with `numpy`, `torch`, `torchvision`, `scikit-learn` and `matplotlib`.
 
 ```bash
 pip install numpy torch torchvision scikit-learn matplotlib
@@ -68,7 +66,7 @@ pip install numpy torch torchvision scikit-learn matplotlib
 The scripts import their siblings by module name, so run them from inside this directory:
 
 ```bash
-cd Codes/Deep_Learning
+cd Code/Deep_Learning
 ```
 
 The PyTorch scripts select the device automatically through `utility_functions.set_device`, preferring CUDA, then Apple MPS, then CPU. MNIST is downloaded to `./data` on first use.
@@ -123,7 +121,7 @@ python ddpm_unet.py --num-epochs 1
 | Dataset | Used by | Size | Notes |
 | --- | --- | --- | --- |
 | 2D binary (`gaussians`, `jigsaw`, `circle`, `moons`) | `ffn_binary.py` | 200 / 20, 2D, 2 classes | Synthetic, standardized; selected with `--data`, default `jigsaw` |
-| Multiclass (`classification`, `blobs`, `iris`) | `ffn_multiclass.py` | 800 / 200 20D 4 classes, 240 / 60 2D 3 classes, 120 / 30 4D 3 classes | Selected with `--data`, default `blobs` |
+| Multiclass (`classification`, `blobs`, `iris`) | `ffn_multiclass.py` | 800 / 200, 20D, 4 classes; 240 / 60, 2D, 3 classes; 120 / 30, 4D, 3 classes | Selected with `--data`, default `blobs` |
 | MNIST (classification) | `ffn.py`, `cnn.py`, `vit.py` | 60000 / 10000, 1x28x28, 10 classes | `ToTensor` only, so pixels stay in `[0, 1]` |
 | MNIST (generation) | VAEs | 60000, 1x28x28 | Pixels in `[0, 1]` to match the sigmoid decoder |
 | MNIST (generation) | GANs, DDPM, SMLD, FM | 60000, 1x28x28 | Normalized to `[-1, 1]` to match the tanh output and the samplers |
@@ -166,7 +164,7 @@ MNIST generative models:
 
 Diffusion and flow matching specifics:
 
-| Option | Scripts | Default (2D / 1D) | Meaning |
+| Option | Scripts | Default (UNet / 1D) | Meaning |
 | --- | --- | --- | --- |
 | `--num-timesteps` | DDPM | `1000` / `1000` | Number of diffusion timesteps |
 | `--beta-start`, `--beta-end` | DDPM | `0.0001`, `0.02` | Endpoints of the linear beta schedule |
@@ -177,6 +175,8 @@ Diffusion and flow matching specifics:
 | `--num-steps` | FM | `50` / `100` | ODE integration steps for sampling |
 | `--solver` | FM | `heun` / `rk4` | `euler` \| `midpoint` \| `heun` \| `rk4` |
 | `--sigma-min` | FM | `0.0` | Minimum noise level of the OT conditional path |
+
+A row with a single default applies to both the UNet and the 1D scripts.
 
 1D toy scripts additionally take `--num-samples` (`2000`), `--num-iterations` (`2000` for DDPM, `5000` for SMLD and FM), `--batch-size` (`256`), `--hidden-size` (`128`) and `--num-gen-samples` (`3000`); they train on freshly drawn mini-batches rather than full passes over the dataset.
 

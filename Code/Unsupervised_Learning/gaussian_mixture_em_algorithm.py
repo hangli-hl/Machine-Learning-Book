@@ -432,12 +432,12 @@ if __name__ == "__main__":
         x_label="iteration",
         y_label="log-likelihood",
         method_name="GMM with EM",
-        file_name="gmm-em-curve.png",
+        file_name="gmm_em_curve.png",
     )
 
     # Visualize the parameter trajectory in 2D using PCA, colored by the
     # log-likelihood
-    pf.visualize_parameter_space_em(model, file_name="gmm-em-traj.png")
+    pf.visualize_parameter_space_em(model, file_name="gmm_em_traj.png")
 
     # Evaluate the clustering against the true labels. ARI is invariant to any
     # permutation of the component ids, so no label matching is needed here.
@@ -455,5 +455,5 @@ if __name__ == "__main__":
             model.assignments,
             true_labels=training_labels,
             method_name="GMM with EM",
-            file_name="gmm-em-clusters.png",
+            file_name="gmm_em_clusters.png",
         )

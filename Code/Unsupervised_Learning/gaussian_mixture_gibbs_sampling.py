@@ -562,12 +562,12 @@ if __name__ == "__main__":
         x_label="iteration",
         y_label="log-posterior",
         method_name="GMM with GS",
-        file_name="gmm-gs-curve.png",
+        file_name="gmm_gs_curve.png",
         start_iteration=model.burn_in,
     )
 
     # Visualize the parameter trajectory in 2D using PCA
-    pf.visualize_parameter_space_gs(model, file_name="gmm-gs-traj.png")
+    pf.visualize_parameter_space_gs(model, file_name="gmm_gs_traj.png")
 
     # Evaluate the clustering against the true labels. ARI is invariant to any
     # permutation of the component ids, so no label matching is needed here.
@@ -585,5 +585,5 @@ if __name__ == "__main__":
             model.assignments,
             true_labels=training_labels,
             method_name="GMM with GS",
-            file_name="gmm-gs-clusters.png",
+            file_name="gmm_gs_clusters.png",
         )

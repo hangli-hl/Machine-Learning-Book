@@ -57,7 +57,7 @@ The last three files are libraries imported by the algorithm scripts; all the ot
 
 ## Requirements
 
-Python 3.8+ with `numpy`, `scipy`, `scikit-learn` and `matplotlib`.
+Python 3.11+ with `numpy`, `scipy`, `scikit-learn` and `matplotlib`.
 
 ```bash
 pip install numpy scipy scikit-learn matplotlib
@@ -66,7 +66,7 @@ pip install numpy scipy scikit-learn matplotlib
 The scripts import their siblings by module name, so run them from inside this directory:
 
 ```bash
-cd Codes/Supervised_Learning
+cd Code/Supervised_Learning
 ```
 
 ---

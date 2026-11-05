@@ -1,85 +1,162 @@
-## Codes/Unsupervised-Learning/README.md
-
 # Unsupervised Learning Methods
 
 This directory contains code implementations of the unsupervised learning algorithms presented in *Machine Learning Methods*. It is still under construction, and more implementations will be added.
 
-Each algorithm is a standalone script with a command-line interface, and the shared modules at the end are imported by all of them.
+Each algorithm is implemented from scratch with NumPy and SciPy and exposed as a standalone script with a command-line interface; scikit-learn is used only to load the Iris dataset, to split the data, to compute the Adjusted Rand Index and to run the PCA behind the trajectory plots.
 
-## Clustering Methods (K-Means)
+## Contents
+
+### Clustering Methods (K-Means)
 
 - `k_means_clustering.py` - K-Means clustering alternating nearest-centroid assignment and centroid update, re-seeding empty clusters with the worst-fitted sample, and recording the sum of squared errors together with the centroid trajectory.
 
-## EM Algorithm
+### EM Algorithm
 
 - `gaussian_mixture_em_algorithm.py` - Gaussian mixture model trained by the EM algorithm, with responsibilities and log-likelihood evaluated in log space via logsumexp and convergence tested on the per-sample log-likelihood change.
 
-## Markov Chain Monte Carlo Methods (Metropolis-Hastings Algorithm and Gibbs Sampling)
+### Markov Chain Monte Carlo Methods (Metropolis-Hastings Algorithm and Gibbs Sampling)
 
 - `gaussian_mixture_metropolis_hastings.py` - Gaussian mixture model sampled by Metropolis-Hastings, using Gaussian random walks on the means and the mixing logits and an asymmetric Inverse-Wishart proposal on the covariances, with proposal scales adapted during burn-in and frozen afterwards.
 - `gaussian_mixture_gibbs_sampling.py` - Gaussian mixture model sampled by Gibbs sampling with conjugate Dirichlet and Normal-Inverse-Wishart priors, alternating assignment and parameter draws and keeping the post-burn-in sample with the highest log-posterior.
 
-## Shared Modules
+### Shared Modules
 
 - `data_creators.py` - Dataset creation: a small hand-specified 2D set, an unbalanced 2D three-component Gaussian mixture, and the sklearn Iris dataset, all split into training and test sets and standardized.
 - `plot_functions.py` - Shared plotting: convergence curves with an optional secondary axis, ground-truth versus learned clustering scatter plots with Hungarian label matching, and PCA projections of the parameter trajectory coloured by the diagnostic value.
 
+The last two files are libraries imported by the algorithm scripts; all the others are entry points. The four algorithm scripts do not import each other.
+
+---
+
 ## Requirements
 
-Python 3.8+ with `numpy`, `scipy`, `scikit-learn` and `matplotlib`.
+Python 3.11+ with `numpy`, `scipy`, `scikit-learn` and `matplotlib`.
 
 ```bash
 pip install numpy scipy scikit-learn matplotlib
 ```
 
-The scripts import their siblings by module name, so run them from inside this directory.
+The scripts import their siblings by module name, so run them from inside this directory:
+
+```bash
+cd Code/Unsupervised_Learning
+```
+
+---
 
 ## Quick start
 
 ```bash
 python k_means_clustering.py
 python gaussian_mixture_em_algorithm.py
-python gaussian_mixture_gibbs_sampling.py
 python gaussian_mixture_metropolis_hastings.py
+python gaussian_mixture_gibbs_sampling.py
 ```
 
-Each script loads a dataset, trains while printing progress, saves three figures to `./plot`, and reports the Adjusted Rand Index (`sklearn.metrics.adjusted_rand_score`) on both the training and the test set.
+Each script loads a dataset, trains while printing progress, saves its figures to `./plot`, and reports the Adjusted Rand Index (ARI) on both the training and the test set.
 
-Use `-h` to see all options with their defaults.
+Use `-h` to see all options with their defaults:
+
+```bash
+python gaussian_mixture_metropolis_hastings.py -h
+```
+
+The Metropolis-Hastings sampler is the slowest one, because it evaluates the full mixture likelihood in every one of its 20000 default iterations; pass a smaller `--num-iterations` and `--burn-in` for a quick smoke test:
+
+```bash
+python gaussian_mixture_metropolis_hastings.py --num-iterations 2000 --burn-in 1000
+```
+
+---
 
 ## Datasets
 
-Chosen with `--data`. All ship ground-truth labels and a train/test split.
+Chosen with `--data`. All ship ground-truth labels and a train/test split, and all features are standardized with the training mean and standard deviation. The labels are never used for training; they serve only for evaluation and for the ground-truth panel of the clustering plot.
 
 | Name | Size | Clusters | Notes |
 | --- | --- | --- | --- |
-| `artificial` | 24 / 16, 2D | 2 | Hand-specified, widely separated, very few points |
-| `gaussians` | 1000 / 100, 2D | 3 | Unbalanced weights `(0.4, 0.5, 0.1)`, non-spherical covariances; the default |
+| `artificial` | 24 / 16, 2D | 2 | Hand-specified, widely separated (one cluster is the mirror image of the other through the origin), very few points |
+| `gaussians` | 1000 / 100, 2D | 3 | Unbalanced weights `(0.4, 0.5, 0.1)`, non-spherical covariances, stratified split; the default |
 | `iris` | 120 / 30, 4D | 3 | Real data, stratified split, two classes overlap |
 
-`iris` is 4-dimensional, so the clustering scatter plots are skipped for it, while the convergence and trajectory plots still apply.
+Model visualizations require 2D features, so the clustering plot is skipped for `iris`, while the training-curve and trajectory plots still apply.
+
+---
 
 ## Options
+
+Dataset and model size:
 
 | Option | Scripts | Default | Meaning |
 | --- | --- | --- | --- |
 | `--data` | all | `gaussians` | `artificial` \| `gaussians` \| `iris` |
-| `--num-clusters` / `--num-components` | K-Means / GMMs | true number in the data | Number of clusters |
-| `--num-iterations` | all | 100 / 1000 / 5000 / 20000 | Iteration budget (K-Means / EM / Gibbs / MH) |
-| `--convergence-threshold` | K-Means, EM | `1e-8` / `1e-4` | Stop on the centroid shift (K-Means) or the per-sample log-likelihood change (EM) |
-| `--burn-in` | Gibbs, MH | 1000 / 10000 | Iterations discarded before recording; must be `< --num-iterations` |
-| `--proposal-step` | MH | auto | Initial random-walk step on the means; auto-scaled from the data when omitted |
+| `--num-clusters` | K-Means | true number in the data | Number of clusters `k` |
+| `--num-components` | the three GMM scripts | true number in the data | Number of Gaussian components `K` |
+
+Iterative methods:
+
+| Option | Scripts | Default | Meaning |
+| --- | --- | --- | --- |
+| `--num-iterations` | all | `100` (K-Means) / `1000` (EM) / `20000` (MH) / `5000` (Gibbs) | Iteration budget; for the samplers, the total number of iterations including burn-in |
+| `--convergence-threshold` | K-Means, EM | `1e-6` / `1e-4` | Stop when the squared Frobenius norm of the centroid update (K-Means) or the per-sample log-likelihood change (EM) drops to this value or below |
+
+Sampling methods:
+
+| Option | Scripts | Default | Meaning |
+| --- | --- | --- | --- |
+| `--burn-in` | MH, Gibbs | `10000` / `1000` | Iterations discarded before recording; must be `< --num-iterations` |
+| `--proposal-step` | MH | auto | Initial step of the Gaussian random walk on the means; auto-scaled from the data and the sample size when omitted, then tuned during burn-in towards an acceptance rate of 0.234 and frozen afterwards |
+
+The prior hyperparameters of the Gibbs sampler and the remaining tuning constants of the MH sampler are module-level constants in the scripts, not command-line options.
+
+Examples:
+
+```bash
+python k_means_clustering.py --data gaussians --num-clusters 4
+python gaussian_mixture_em_algorithm.py --data artificial --convergence-threshold 1e-6
+python gaussian_mixture_metropolis_hastings.py --data gaussians --num-iterations 5000 --burn-in 2000 --proposal-step 0.05
+python gaussian_mixture_gibbs_sampling.py --data iris --num-iterations 2000 --burn-in 500
+```
+
+---
 
 ## Output
 
-All figures are saved to `./plot` (created automatically, re-runs overwrite) and also displayed: `k-means-*.png`, `gmm-em-*.png`, `gmm-gs-*.png`, `gmm-mh-*.png`, each with a `-curve`, `-traj` and `-clusters` variant.
+All figures are saved to `./plot` (created automatically, re-runs overwrite previous files) and also displayed. File names are derived from the model name, for example `./plot/gmm_em_training_curve.png` and `./plot/k_means_trajectory.png`. The prefixes are `k_means`, `gmm_em`, `gmm_mh` and `gmm_gs`.
 
-- **Convergence curve** - diagnostics against the iteration index; for the samplers the x axis starts at `burn_in`, and the acceptance rate (MH) or the log-posterior (Gibbs) is drawn alongside the log-likelihood.
-- **Trajectory plot** - parameter snapshots projected to 2D by PCA and coloured by the diagnostic value, with the start, end and best points highlighted; the retained fraction of variance is reported on the axes.
-- **Clustering plot** - ground truth on top, learned result below, sharing one colour scale; predicted labels are permuted to best match the true ones, which changes colours only, never the partition.
+| Figure | Produced by | Content |
+| --- | --- | --- |
+| `*_training_curve.png` | every script | The diagnostic against the iteration index: sum of squared errors (K-Means), log-likelihood (EM), log-likelihood with the acceptance rate on a secondary axis (MH), or log-posterior (Gibbs). The x axis is linear and, for the samplers, starts at `burn_in` |
+| `*_trajectory.png` | every script | The parameter trajectory projected to 2D by PCA and coloured by the diagnostic value |
+| `*_model.png` | every script, when the data is 2D | Ground truth on top, learned clustering below |
+
+Details of the three figures:
+
+* **Training curve** - for MH, the acceptance rate is the windowed rate over the last 200 iterations, and the counters restart at the burn-in boundary, when the proposal scales are frozen.
+* **Trajectory plot** - flattened parameters (centroids for K-Means; coefficients, means and covariances for the GMMs) are standardized column-wise and projected by PCA. The start, end and best points are highlighted, and the retained fraction of variance is reported on the axes. "Best" means the minimum SSE for K-Means, the maximum log-likelihood for EM and MH, and the maximum log-posterior for Gibbs. For the samplers, every 10th snapshot is kept, the best one is always kept, and repeated snapshots (rejected proposals) are dropped. The plot is skipped with a message when fewer than three distinct snapshots remain, for example when K-Means converges within a couple of iterations.
+* **Clustering plot** - the training samples with the true and the learned centers (red crosses), sharing one colour scale. Predicted labels are permuted by Hungarian matching to best fit the true ones, which changes colours only, never the partition.
 
 On a headless machine, set a non-interactive backend so that `plt.show()` does not block:
 
 ```bash
 MPLBACKEND=Agg python k_means_clustering.py
 ```
+
+---
+
+## Evaluation
+
+Each script prints the Adjusted Rand Index between the ground-truth labels and the learned cluster assignments on both the training and the test set, computed with `sklearn.metrics.adjusted_rand_score`:
+
+* **ARI** - lies in `[-1, 1]`; `1` means identical partitions and values near `0` mean chance-level agreement. It is invariant to any permutation of the cluster ids, so no label matching is needed for the numbers.
+
+The test samples are assigned by `predict` under the final parameters, which are chosen as follows:
+
+| Script | Final parameters | Additionally printed |
+| --- | --- | --- |
+| K-Means | Centroids of the last iteration | Final SSE |
+| EM | Parameters of the last iteration | Final log-likelihood |
+| Metropolis-Hastings | Post-burn-in sample with the highest log-likelihood | Post-burn-in acceptance rate, best log-likelihood |
+| Gibbs sampling | Post-burn-in sample with the highest log-posterior | Best log-posterior (up to a constant) |
+
+All four methods start from `k` distinct random training samples as initial centroids or means, so the result is a local optimum that depends on the initialization. To make repeated runs reproducible, every script fixes `MODEL_SEED` after the data is created (`32` for K-Means, EM and MH, `64` for Gibbs sampling); `data_creators.py` uses `DATA_SEED = 16` and `plot_functions.py` uses `PLOT_SEED = 64` for the PCA.
