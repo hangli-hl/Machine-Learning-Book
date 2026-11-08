@@ -314,7 +314,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--data",
         type=str,
-        default="gaussians",
+        default="jigsaw",
         choices=["artificial", "gaussians", "iris", "jigsaw", "circle", "moons"],
         help="Dataset to use: artificial (manual 2D), gaussians (synthetic 2D, two gaussians), "
         "iris (Iris 4D), jigsaw (synthetic 2D, xor patterns), circle (synthetic 2D, "

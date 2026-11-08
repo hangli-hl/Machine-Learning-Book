@@ -396,8 +396,8 @@ def visualize_nearest_neighbor(instances, labels, model):
         instances,
         labels,
         lambda grid: model.predict(grid) == 1,
-        title="Nearest Neighbor Classifier",
-        file_name="nearest_neighbor_model",
+        title="K Nearest Neighbor Classifier",
+        file_name="k_nearest_neighbor_model",
     )
 
 

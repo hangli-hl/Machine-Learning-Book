@@ -104,13 +104,15 @@ python kernel_svm.py -h
 
 Chosen with `--data`. All ship ground-truth labels or values and a train/test split, and all features are standardized with the training mean and standard deviation.
 
+The default dataset is `gaussians` for the binary classifiers, except `adaboost.py`, `gradient_boosting_binary.py` and `kernel_svm.py`, which default to `jigsaw`.
+
 Binary classification:
 
 | Name | Size | Notes |
 | --- | --- | --- |
 | `artificial` | 14 / 10, 2D | Hand-specified, linearly separable, very few points |
-| `gaussians` | 200 / 20, 2D | Two Gaussians with different covariances; the default |
-| `jigsaw` | 200 / 20, 2D | XOR-like, four Gaussian blobs in two classes, not linearly separable |
+| `gaussians` | 200 / 20, 2D | Two Gaussians with different covariances; the default for all binary classifiers except `adaboost.py`, `gradient_boosting_binary.py` and `kernel_svm.py` |
+| `jigsaw` | 200 / 20, 2D | XOR-like, four Gaussian blobs in two classes, not linearly separable; the default for `adaboost.py`, `gradient_boosting_binary.py` and `kernel_svm.py` |
 | `circle` | 200 / 20, 2D | Inner disc against an outer ring, not linearly separable |
 | `moons` | 200 / 20, 2D | Two interleaving half moons with noise |
 | `iris` | 120 / 30, 4D | Real data, class 2 against classes 0 and 1 |
@@ -120,7 +122,7 @@ Multiclass classification:
 | Name | Size | Classes | Notes |
 | --- | --- | --- | --- |
 | `classification` | 800 / 200, 20D | 4 | Synthetic, 15 informative and 5 redundant features |
-| `blobs` | 240 / 60, 2D | 3 | Three isotropic blobs; the default |
+| `blobs` | 240 / 60, 2D | 3 | Three isotropic blobs; the default for the multiclass scripts |
 | `iris` | 120 / 30, 4D | 3 | Real data, stratified split, two classes overlap |
 
 Regression:
@@ -128,7 +130,7 @@ Regression:
 | Name | Size | Notes |
 | --- | --- | --- |
 | `artificial` | 14 / 10, 2D | Hand-specified, values standardized |
-| `plane` | 200 / 20, 2D | `y = 5*x1 - 3*x2 + 2` with Gaussian noise; the default |
+| `plane` | 200 / 20, 2D | `y = 5*x1 - 3*x2 + 2` with Gaussian noise; the default for the regression scripts |
 | `diabetes` | 353 / 89, 10D | Real data, values standardized |
 
 Label conventions differ by algorithm: `perceptron.py`, `linear_svm.py`, `kernel_svm.py` and `adaboost.py` request signed labels in `{-1, 1}`, while the remaining classifiers use `{0, 1}` or `{0, ..., k-1}`. The flag is handled inside `data_creators.select_binary_classification_data`, so no manual conversion is needed.

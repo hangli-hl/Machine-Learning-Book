@@ -193,7 +193,7 @@ def create_jigsaw_binary_data():
 
     # Define Gaussian distributions approximately in four quadrants
     pos_means = [[2.5, 2.5], [-2.5, -2.5]]  # quadrants 1 & 3
-    neg_means = [[-2.5, 2.5], [0.5, -0.5]]  # quadrants 2 & 4
+    neg_means = [[-2.5, 2.5], [2.5, -2.5]]  # quadrants 2 & 4
     cov = [[1.5, 0.3], [0.3, 1.5]]
 
     # Generate data

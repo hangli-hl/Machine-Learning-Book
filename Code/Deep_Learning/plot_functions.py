@@ -3,9 +3,11 @@
 ##############################################################################
 
 import os
+import sys
 
 import numpy as np
 import torch
+import matplotlib
 import matplotlib.pyplot as plt
 from sklearn.manifold import TSNE
 
@@ -27,6 +29,10 @@ def _save_fig(fig, file_name, directory=PLOT_DIR, show=True):
     """
     Save a figure to a directory, optionally display it, and release it.
 
+    The figure is always saved. It is displayed only when show is True and the
+    Linux machine is not headless, i.e. the backend is not Agg and a display
+    server is available.
+
     Args:
         fig: matplotlib figure
         file_name: name of the saved file, without directory and extension
@@ -39,7 +45,13 @@ def _save_fig(fig, file_name, directory=PLOT_DIR, show=True):
     os.makedirs(directory, exist_ok=True)
     path = os.path.join(directory, f"{file_name}.png")
     fig.savefig(path, dpi=150)
-    if show:
+
+    has_display = (
+        sys.platform == "darwin"
+        or os.environ.get("DISPLAY")
+        or os.environ.get("WAYLAND_DISPLAY")
+    )
+    if show and has_display and matplotlib.get_backend().lower() != "agg":
         plt.show()
     plt.close(fig)
 

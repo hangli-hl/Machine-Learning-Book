@@ -391,15 +391,17 @@ def generate_samples_vae(model, epoch, fixed_latents, num_epochs):
     # Set the model back to training mode
     model.train()
 
-    # Only the image of the last epoch is displayed
-    pf.plot_generated_images(
-        generated_images,
-        title=f"{MODEL_NAME}, Epoch {epoch + 1}",
-        file_name=pf.default_file_name(MODEL_NAME, f"epoch_{epoch + 1}"),
-        value_range=(0.0, 1.0),
-        show=(epoch + 1 == num_epochs),
-    )
 
+    # Save generated images every 5 epochs; display only for the last epoch
+    current_epoch = epoch + 1
+    if current_epoch % 5 == 0 or current_epoch == num_epochs:
+        pf.plot_generated_images(
+        generated_images,
+        title=f"{MODEL_NAME}, Epoch {current_epoch}",
+        file_name=pf.default_file_name(MODEL_NAME, f"epoch_{current_epoch}"),
+        value_range=(0.0, 1.0),
+        show=(current_epoch == num_epochs),
+    )
 
 ##############################################################################
 #                                MAIN PROGRAM
