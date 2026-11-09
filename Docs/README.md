@@ -1,19 +1,13 @@
 # Docs
 
-## Docs/README.md
-
-# Docs
-
-This directory contains the documents for *Machine Learning Methods (Third Editin)*, including the table of contents, sample chapters, and explanatory notes.
-
-本目录包含《机器学习方法 第三版》的文档资料，包括目录、样章和说明。
+This directory contains the documents for *Machine Learning Methods (Third Edition)*, including the table of contents, sample chapters, and explanatory notes.
 
 ## Contents
 
-- [Table of Contents](./Table_of_Contents/) - 书籍目录
-- [Sample Chapters](./Sample_Chapters/) - 样章目录
-- 第三版内容说明
-- 第二版勘误表
+- [Table of Contents](./Table_of_Contents/)
+- [Sample Chapters](./Sample_Chapters/)
+- Notes on the Third Edition
+- Errata for the Second Edition
 
 ## Table of Contents (Third Edition)
 
@@ -84,9 +78,20 @@ This directory contains the documents for *Machine Learning Methods (Third Editi
 
 ---
 
-## 目录（第三版）
+# 文档
 
-### 第1篇（第1册） 监督学习
+本目录包含《机器学习方法 第三版》的文档资料,包括目录、样章和说明。
+
+## 内容
+
+- [书籍目录](./Table_of_Contents/)
+- [样章目录](./Sample_Chapters/)
+- 第三版内容说明
+- 第二版勘误表
+
+## 目录(第三版)
+
+### 第1篇(第1册) 监督学习
 
 - 第1章 机器学习简介
 - 第2章 监督学习简介
@@ -98,48 +103,48 @@ This directory contains the documents for *Machine Learning Methods (Third Editi
 - 第8章 逻辑斯谛回归与最大熵模型
 - 第9章 支持向量机
 - 第10章 提升方法
-- 第11章 隐马尔可夫模型（HMM）
-- 第12章 条件随机场（CRF）
+- 第11章 隐马尔可夫模型(HMM)
+- 第12章 条件随机场(CRF)
 - 第13章 监督学习方法总结
 
-### 第2篇（第2册） 无监督学习
+### 第2篇(第2册) 无监督学习
 
 - 第14章 无监督学习简介
 - 第15章 聚类方法
-- 第16章 奇异值分解（SVD）
-- 第17章 主成分分析（PCA）
+- 第16章 奇异值分解(SVD)
+- 第17章 主成分分析(PCA)
 - 第18章 EM算法与变分EM算法
 - 第19章 马尔可夫链
-- 第20章 马尔可夫链蒙特卡罗法（MCMC）
-- 第21章 潜在语义分析（LSI）与非负矩阵分解（NMF）
-- 第22章 概率潜在语义分析（PLSI）
-- 第23章 潜在狄利克雷分配（LDA）
+- 第20章 马尔可夫链蒙特卡罗法(MCMC)
+- 第21章 潜在语义分析(LSI)与非负矩阵分解(NMF)
+- 第22章 概率潜在语义分析(PLSI)
+- 第23章 潜在狄利克雷分配(LDA)
 - 第24章 无监督学习方法总结
 
-### 第3篇（第3册） 深度学习
+### 第3篇(第3册) 深度学习
 
 - 第25章 深度学习简介
-- 第26章 前馈神经网络（FNN）
-- 第27章 卷积神经网络（CNN）
-- 第28章 循环神经网络（RNN）
+- 第26章 前馈神经网络(FNN)
+- 第27章 卷积神经网络(CNN)
+- 第28章 循环神经网络(RNN)
 - 第29章 Transformer
 - 第30章 GPT与BERT
-- 第31章 自编码器（AE）
-- 第32章 生成对抗网络（GAN）
-- 第33章 变分自编码器（VAE）
+- 第31章 自编码器(AE)
+- 第32章 生成对抗网络(GAN)
+- 第33章 变分自编码器(VAE)
 - 第34章 扩散模型
 - 第35章 流匹配模型
 - 第36章 深度学习方法总结
 
-### 第4篇（第4册） 强化学习
+### 第4篇(第4册) 强化学习
 
 - 第37章 强化学习简介
 - 第38章 马尔可夫决策过程
-- 第39章 多臂老虎机（MAB）
+- 第39章 多臂老虎机(MAB)
 - 第40章 基于价值的方法
-- 第41章 深度Q网络（DQN）
+- 第41章 深度Q网络(DQN)
 - 第42章 基于策略的方法
-- 第43章 近端策略优化（PPO）
+- 第43章 近端策略优化(PPO)
 - 第44章 强化学习方法总结
 
 ### 附录
