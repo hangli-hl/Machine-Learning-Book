@@ -16,7 +16,7 @@ This directory contains code implementations of the algorithms in the book *Mach
 
 - Linear Regression
 - Perceptron
-- k-Nearest Neighbors (k-NN)
+- K-Nearest Neighbors (KNN)
 - Naive Bayes
 - Decision Trees
 - Logistic Regression
@@ -59,8 +59,8 @@ This directory contains code implementations of the algorithms in the book *Mach
 
 - 线性回归
 - 感知机
-- k 近邻法
-- 朴素贝叶斯法
+- K近邻
+- 朴素贝叶斯
 - 决策树
 - 逻辑斯谛回归
 - 支持向量机
