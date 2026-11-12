@@ -1,9 +1,0 @@
-Metadata-Version: 2.4
-Name: Machine-Learning-Book
-Version: 0.3
-Requires-Python: >=3.10
-Requires-Dist: numpy
-Requires-Dist: scikit-learn
-Provides-Extra: deep
-Requires-Dist: torch; extra == "deep"
-Requires-Dist: torchvision; extra == "deep"

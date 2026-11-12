@@ -1,9 +1,0 @@
-README.md
-pyproject.toml
-Data/data_creators.py
-Data/data_loaders.py
-Machine_Learning_Book.egg-info/PKG-INFO
-Machine_Learning_Book.egg-info/SOURCES.txt
-Machine_Learning_Book.egg-info/dependency_links.txt
-Machine_Learning_Book.egg-info/requires.txt
-Machine_Learning_Book.egg-info/top_level.txt
