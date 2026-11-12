@@ -7,3 +7,5 @@ Supervised_Learning/plot/
 Unsupervised_Learning/plot/
 Deep_Learning/plot/
 Deep_Learning/gen/
+
+*.egg-info/
