@@ -4,13 +4,16 @@
 
 
 import argparse
-
+import sys
+from pathlib import Path  
 import numpy as np
 
-import data_creators as dc
+# Make the repository root importable so that the Data package can be found
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+
 import utility_functions as uf
 import plot_functions as pf
-
+from Data import data_loaders as dl
 from classification_tree import ClassificationTree
 
 # Default number of base learners (classification trees) in the ensemble
@@ -349,7 +352,7 @@ if __name__ == "__main__":
 
     # Select dataset, labels in {-1, +1}
     training_instances, training_labels, test_instances, test_labels = (
-        dc.select_binary_classification_data(dataset=args.data, signed_label=True)
+        dl.load_binary_classification_data(dataset=args.data, signed_label=True)
     )
     num_features = training_instances.shape[1]
     num_classes = 2
