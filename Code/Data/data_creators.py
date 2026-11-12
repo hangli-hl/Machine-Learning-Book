@@ -9,9 +9,8 @@
 #   * Creators only GENERATE data: they return RAW data (no train/test split,
 #     no standardization) and do no file IO. Those are done by data_loaders.py.
 #   * Algorithm code must NOT import this module; use data_loaders.py.
-#   * Randomness uses a local np.random.RandomState(seed); the global NumPy
-#     random state is never touched.
-#     (Exception: the 1D Gaussian mixture seeds the global torch RNG.)
+#   * Randomness uses a local np.random.RandomState(seed) (NumPy) or
+#     torch.Generator (torch); the global RNG states are never touched.
 #
 # Label convention: binary labels are {0, 1} with positives (1) listed first.
 
@@ -23,16 +22,16 @@ import torch
 ##############################################################################
 
 
-def _generate_gaussian_points(rng, means, covs, num_samples_per_distribution):
+def _generate_gaussian_points(means, covs, num_samples_per_distribution, rng):
     """
     Generate points from several Gaussian distributions, one block per distribution.
 
     Args:
-        rng: a np.random.RandomState
         means: sequence of num_distributions mean vectors of length num_features
         covs: sequence of num_distributions covariance matrices,
             each of shape (num_features, num_features)
         num_samples_per_distribution: sequence of num_distributions positive integers
+        rng: a np.random.RandomState
 
     Returns:
         samples: shape (sum(num_samples_per_distribution), num_features)
@@ -45,10 +44,13 @@ def _generate_gaussian_points(rng, means, covs, num_samples_per_distribution):
     )
 
 
-def _generate_polar_points(rng, radius_min, radius_max, num_samples):
+def _generate_polar_points(radius_min, radius_max, num_samples, rng):
     """
     Generate 2D points with radius sampled uniformly in [radius_min, radius_max]
     and angle uniformly in [0, 2*pi).
+
+    Args:
+        rng: a np.random.RandomState
 
     Returns:
         points: shape (num_samples, 2)
@@ -80,7 +82,7 @@ def create_gaussians_binary_data(seed):
     means = [[2, 5], [3, -2]]  # positive, negative
     covs = [[[1, -1], [-1, 3]], [[1, 0.5], [0.5, 2]]]
 
-    instances = _generate_gaussian_points(rng, means, covs, [110, 110])
+    instances = _generate_gaussian_points(means, covs, [110, 110], rng)
     return instances, _binary_labels(110, 110)
 
 
@@ -100,16 +102,16 @@ def create_jigsaw_binary_data(seed):
 
     cov = [[1.5, 0.3], [0.3, 1.5]]
     pos_instances = _generate_gaussian_points(
-        rng,
         jigsaw_pos_means,
         [cov] * len(jigsaw_pos_means),
         [55] * len(jigsaw_pos_means),
+        rng,
     )
     neg_instances = _generate_gaussian_points(
-        rng,
         jigsaw_neg_means,
         [cov] * len(jigsaw_neg_means),
         [55] * len(jigsaw_neg_means),
+        rng,
     )
     instances = np.vstack((pos_instances, neg_instances))
     return instances, _binary_labels(110, 110)
@@ -125,8 +127,8 @@ def create_circle_binary_data(seed):
     """
     rng = np.random.RandomState(seed)
 
-    inner_instances = _generate_polar_points(rng, 0, 2, 110)
-    outer_instances = _generate_polar_points(rng, 4, 6, 110)
+    inner_instances = _generate_polar_points(0, 2, 110, rng)
+    outer_instances = _generate_polar_points(4, 6, 110, rng)
     instances = np.vstack((inner_instances, outer_instances))
     return instances, _binary_labels(110, 110)
 
@@ -170,7 +172,7 @@ def create_gaussians_clustering_data(seed):
     covs = np.array([[[1, 0], [0, 1]], [[2, -1.5], [-1.5, 2]], [[3, 1], [1, 2]]])
     num_samples_per_cluster = [440, 550, 110]
 
-    samples = _generate_gaussian_points(rng, means, covs, num_samples_per_cluster)
+    samples = _generate_gaussian_points(means, covs, num_samples_per_cluster, rng)
     labels = np.repeat(np.arange(len(means)), num_samples_per_cluster)
     return samples, labels
 
@@ -180,9 +182,33 @@ def create_gaussians_clustering_data(seed):
 ##############################################################################
 
 
+def create_gaussian_mixture_1d_data(num_samples, seed, device="cpu"):
+    """
+    Sample from the 1D Gaussian mixture using a local torch.Generator
+    (the global torch RNG is not touched).
+
+    Returns:
+        data: tensor of shape (num_samples, 1)
+    """
+    generator = torch.Generator(device=device).manual_seed(seed)
+
+    weights = torch.tensor([0.3, 0.7], device=device)
+    means = torch.tensor([-5.0, 5.0], device=device)
+    stds = torch.tensor([1.0, 1.0], device=device)
+
+    components = torch.multinomial(
+        weights, num_samples, replacement=True, generator=generator
+    )
+    noise = torch.randn(num_samples, device=device, generator=generator)
+    data = means[components] + stds[components] * noise
+    return data.reshape(num_samples, 1)
+
+
 def gaussian_mixture_1d_distribution(device="cpu"):
     """
     Target two-component 1D Gaussian mixture (30% at -5, 70% at +5, std 1).
+    Used for the analytic density and score; sampling is done separately in
+    create_gaussian_mixture_1d_data.
 
     Returns:
         distribution: a torch.distributions.MixtureSameFamily
@@ -194,18 +220,6 @@ def gaussian_mixture_1d_distribution(device="cpu"):
             torch.tensor([1.0, 1.0], device=device),
         ),
     )
-
-
-def create_gaussian_mixture_1d_data(num_samples, seed, device="cpu"):
-    """
-    Sample from the 1D Gaussian mixture. Note: seeds the global torch RNG
-    (torch.distributions has no per-call generator argument).
-
-    Returns:
-        data: tensor of shape (num_samples, 1)
-    """
-    torch.manual_seed(seed)
-    return gaussian_mixture_1d_distribution(device=device).sample((num_samples, 1))
 
 
 def gaussian_mixture_1d_pdf(x):

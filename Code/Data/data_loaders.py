@@ -35,6 +35,7 @@ from sklearn.datasets import (
 )
 from sklearn.model_selection import train_test_split
 from torchvision import datasets, transforms
+from torch.utils.data import DataLoader
 
 from . import data_creators as dc
 
@@ -388,7 +389,6 @@ def gaussian_mixture_1d_score(x):
 
 def _mnist_dataset(train, tanh_range=False):
     """MNIST torchvision dataset, downloaded to DATA_DIR if missing."""
- 
     steps = [transforms.ToTensor()]
     if tanh_range:
         steps.append(transforms.Normalize((0.5,), (0.5,)))  # pixels -> [-1, 1]
@@ -410,7 +410,6 @@ def load_mnist_classification_data(batch_size):
     Returns:
         tuple: (training_loader, test_loader)
     """
-    from torch.utils.data import DataLoader
 
     training_loader = DataLoader(
         _mnist_dataset(train=True), batch_size=batch_size, shuffle=True
@@ -433,7 +432,6 @@ def load_mnist_generation_data(batch_size, tanh_range=False):
     Returns:
         training_loader: DataLoader
     """
-    from torch.utils.data import DataLoader
 
     return DataLoader(
         _mnist_dataset(train=True, tanh_range=tanh_range),
