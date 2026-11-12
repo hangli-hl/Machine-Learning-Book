@@ -4,14 +4,18 @@
 
 
 import argparse
-from collections import deque
-
+import sys
+from pathlib import Path
 import numpy as np
 from scipy.special import logsumexp
 from scipy.stats import invwishart, multivariate_normal
+from collections import deque
 from sklearn.metrics import adjusted_rand_score
 
-import data_creators as dc
+# Make the repository root importable so that the Data package can be found
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+
+from Data import data_loaders as dl
 import plot_functions as pf
 
 # Default number of iterations for the Metropolis-Hastings sampler
@@ -567,9 +571,8 @@ if __name__ == "__main__":
         "--data",
         type=str,
         default="gaussians",
-        choices=["artificial", "gaussians", "iris"],
-        help="Dataset to use: artificial (manual 2D), "
-        "gaussians (synthetic 2D Gaussian mixture) or iris (Iris 4D)",
+        choices=["gaussians", "iris"],
+        help="Dataset to use: gaussians (synthetic 2D Gaussian mixture) or iris (Iris 4D)",
     )
     parser.add_argument(
         "--num-components",
@@ -608,7 +611,7 @@ if __name__ == "__main__":
         test_samples,
         test_labels,
         num_components_in_data,
-    ) = dc.select_clustering_data(dataset=args.data)
+    ) = dl.load_clustering_data(dataset=args.data)
     num_features = training_samples.shape[1]
 
     # Use specified num_components or fall back to true number
