@@ -4,10 +4,14 @@
 
 
 import argparse
-
+import sys
+from pathlib import Path
 import numpy as np
 
-import data_creators as dc
+# Make the repository root importable so that the Data package can be found
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+
+from Data import data_loaders as dl
 import utility_functions as uf
 import plot_functions as pf
 
@@ -378,7 +382,7 @@ if __name__ == "__main__":
 
     # Load dataset
     training_instances, training_labels, test_instances, test_labels = (
-        dc.select_ffn_multiclass_data(dataset=args.data)
+        dl.load_multiclass_classification_data(dataset=args.data)
     )
     num_training_instances = training_instances.shape[0]
     num_features = training_instances.shape[1]
