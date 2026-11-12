@@ -18,10 +18,6 @@
 import numpy as np
 import torch
 
-# Jigsaw (XOR-like) Gaussian centres
-JIGSAW_POS_MEANS = [[2.5, 2.5], [-2.5, -2.5]]  # quadrants 1 & 3
-JIGSAW_NEG_MEANS = [[-2.5, 2.5], [2.5, -2.5]]  # quadrants 2 & 4
-
 
 ##############################################################################
 #                           HELPER FUNCTIONS
@@ -99,12 +95,16 @@ def create_jigsaw_binary_data(seed):
     """
     rng = np.random.RandomState(seed)
 
+    # Jigsaw (XOR-like) Gaussian centres
+    jigsaw_pos_means = [[2.5, 2.5], [-2.5, -2.5]]  # quadrants 1 & 3
+    jigsaw_neg_means = [[-2.5, 2.5], [2.5, -2.5]]  # quadrants 2 & 4
+
     cov = [[1.5, 0.3], [0.3, 1.5]]
     pos_instances = _generate_gaussian_points(
-        rng, JIGSAW_POS_MEANS, [cov] * len(JIGSAW_POS_MEANS), [55] * len(JIGSAW_POS_MEANS)
+        rng, jigsaw_pos_means, [cov] * len(jigsaw_pos_means), [55] * len(jigsaw_pos_means)
     )
     neg_instances = _generate_gaussian_points(
-        rng, JIGSAW_NEG_MEANS, [cov] * len(JIGSAW_NEG_MEANS), [55] * len(JIGSAW_NEG_MEANS)
+        rng, jigsaw_neg_means, [cov] * len(jigsaw_neg_means), [55] * len(jigsaw_neg_means)
     )
     instances = np.vstack((pos_instances, neg_instances))
     return instances, _binary_labels(110, 110)

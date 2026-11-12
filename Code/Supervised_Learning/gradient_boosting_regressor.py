@@ -4,14 +4,17 @@
 
 
 import argparse
-
+import sys
+from pathlib import Path
 import numpy as np
 
-import data_creators as dc
+# Make the repository root importable so that the Data package can be found
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+
+from Data import data_loaders as dl
+from regression_tree import RegressionTree
 import utility_functions as uf
 import plot_functions as pf
-
-from regression_tree import RegressionTree
 
 # Default number of base learners (regression trees) in the ensemble
 DEFAULT_NUM_LEARNERS = 100
@@ -238,8 +241,8 @@ if __name__ == "__main__":
         "--data",
         type=str,
         default="plane",
-        choices=["artificial", "plane", "diabetes"],
-        help="Dataset to use: artificial (manual 2D), plane (synthetic 2D) "
+        choices=["plane", "diabetes"],
+        help="Dataset to use: plane (synthetic 2D) "
         "or diabetes (Diabetes 10D)",
     )
     parser.add_argument(
@@ -278,7 +281,7 @@ if __name__ == "__main__":
 
     # Select dataset
     training_instances, training_values, test_instances, test_values = (
-        dc.select_regression_data(dataset=args.data)
+        dl.load_regression_data(dataset=args.data)
     )
     num_features = training_instances.shape[1]
     print(f"Using dataset: {args.data}")

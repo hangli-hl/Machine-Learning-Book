@@ -4,12 +4,17 @@
 
 
 import argparse
-
+import sys
+from pathlib import Path
 import numpy as np
 
-import data_creators as dc
+# Make the repository root importable so that the Data package can be found
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+
+from Data import data_loaders as dl
 import utility_functions as uf
 import plot_functions as pf
+
 
 # Small constant added to every variance to avoid division by zero or log(0)
 VAR_EPS = 1e-6
@@ -253,8 +258,8 @@ if __name__ == "__main__":
         "--data",
         type=str,
         default="gaussians",
-        choices=["artificial", "gaussians", "iris", "jigsaw", "circle", "moons"],
-        help="Dataset to use: artificial (manual 2D), gaussians (synthetic 2D, two gaussians), "
+        choices=["gaussians", "iris", "jigsaw", "circle", "moons"],
+        help="Dataset to use: gaussians (synthetic 2D, two gaussians), "
         "iris (Iris 4D), jigsaw (synthetic 2D, xor patterns), circle (synthetic 2D, "
         "circular patterns) or moons (synthetic 2D, two half moons)",
     )
@@ -263,7 +268,7 @@ if __name__ == "__main__":
 
     # Select dataset, labels in {0, 1}
     training_instances, training_labels, test_instances, test_labels = (
-        dc.select_binary_classification_data(dataset=args.data, signed_label=False)
+        dl.load_binary_classification_data(dataset=args.data, signed_label=False)
     )
     num_features = training_instances.shape[1]
     num_classes = 2
@@ -287,9 +292,7 @@ if __name__ == "__main__":
 
     # Evaluate on training set
     predicted_training_labels = model.predict(training_instances)
-    training_accuracy = uf.evaluate_accuracy(
-        training_labels, predicted_training_labels
-    )
+    training_accuracy = uf.evaluate_accuracy(training_labels, predicted_training_labels)
     print(f"Training accuracy: {training_accuracy:.4f}")
 
     # Evaluate on test set

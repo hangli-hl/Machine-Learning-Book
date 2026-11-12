@@ -12,6 +12,9 @@
 #   * load standard datasets (Iris, Diabetes, MNIST, sklearn make_*)
 #   * split train/test, standardize with TRAINING statistics, encode labels
 #
+# Section order mirrors data_creators.py (binary, regression, clustering,
+# 1D Gaussian mixture); sections without a creator (multiclass, MNIST) follow.
+#
 # Data conventions:
 #   instances / samples : shape (num_instances, num_features)
 #   binary labels       : {0, 1} or {-1, 1} (signed_label=True); 1 = positive
@@ -34,14 +37,14 @@ from . import data_creators
 
 __all__ = [
     "load_binary_classification_data",
-    "load_multiclass_classification_data",
     "load_regression_data",
     "load_clustering_data",
-    "load_mnist_classification_data",
-    "load_mnist_generation_data",
     "load_gaussian_mixture_1d_data",
     "gaussian_mixture_1d_pdf",
     "gaussian_mixture_1d_score",
+    "load_multiclass_classification_data",
+    "load_mnist_classification_data",
+    "load_mnist_generation_data",
 ]
 
 # Random seed for supervised learning and deep learning datasets
@@ -116,7 +119,8 @@ def _split(instances, targets, test_size, seed, stratify):
 #                           BINARY CLASSIFICATION
 ##############################################################################
 # Each source returns raw (instances, labels in {0, 1}); the registry also
-# stores the test size. All binary datasets use a stratified split.
+# stores the test size (int = number of test samples, float = fraction).
+# All binary datasets use a stratified split.
 
 
 def _binary_gaussians():
@@ -182,71 +186,6 @@ def load_binary_classification_data(dataset, signed_label=False):
         test_x,
         _encode_labels(test_y, signed_label),
     )
-
-
-##############################################################################
-#                         MULTICLASS CLASSIFICATION
-##############################################################################
-# All multiclass datasets are standard datasets (sklearn, Iris).
-
-
-def _multiclass_classification():
-    return make_classification(
-        n_samples=1000,
-        n_features=20,
-        n_informative=15,
-        n_redundant=5,
-        n_classes=4,
-        n_clusters_per_class=1,
-        random_state=DATA_SEED,
-    )
-
-
-def _multiclass_blobs():
-    return make_blobs(
-        n_samples=300,
-        n_features=2,
-        centers=3,
-        cluster_std=1.0,
-        random_state=DATA_SEED,
-    )
-
-
-def _multiclass_iris():
-    iris = load_iris()
-    return iris.data, iris.target
-
-
-_MULTICLASS_SOURCES = {
-    "classification": _multiclass_classification,  # 20D, 4 classes (800 / 200)
-    "blobs": _multiclass_blobs,  # 2D, 3 classes (240 / 60)
-    "iris": _multiclass_iris,  # 4D, 3 classes (120 / 30)
-}
-
-
-def load_multiclass_classification_data(dataset):
-    """
-    Load a multiclass classification dataset.
-
-    Args:
-        dataset: one of
-            - 'classification': sklearn make_classification, 20D, 4 classes (800 train, 200 test)
-            - 'blobs': sklearn make_blobs, 2D, 3 classes (240 train, 60 test)
-            - 'iris': Iris, 4D, 3 classes (120 train, 30 test)
-
-    Returns:
-        tuple: (training_instances, training_labels, test_instances, test_labels),
-        labels in {0, ..., k-1}, instances standardized with training statistics
-    """
-    _check_dataset(dataset, _MULTICLASS_SOURCES)
-
-    instances, labels = _MULTICLASS_SOURCES[dataset]()
-    train_x, train_y, test_x, test_y = _split(
-        instances, labels, 0.2, DATA_SEED, stratify=True
-    )
-
-    train_x, test_x = _standardize_instances(train_x, test_x)
-    return train_x, train_y, test_x, test_y
 
 
 ##############################################################################
@@ -342,10 +281,101 @@ def load_clustering_data(dataset):
 
 
 ##############################################################################
+#                  1D GAUSSIAN MIXTURE FOR GENERATIVE MODELS
+##############################################################################
+
+
+def load_gaussian_mixture_1d_data(num_samples, device="cpu"):
+    """
+    Sample the 1D Gaussian mixture (30% at -5, 70% at +5).
+
+    Returns:
+        data: tensor of shape (num_samples, 1)
+    """
+    return data_creators.create_gaussian_mixture_1d_data(num_samples, DATA_SEED, device)
+
+
+def gaussian_mixture_1d_pdf(x):
+    """Analytic density of the 1D mixture (numpy in, numpy out; for plotting)."""
+    return data_creators.gaussian_mixture_1d_pdf(x)
+
+
+def gaussian_mixture_1d_score(x):
+    """Analytic score of the 1D mixture, x: tensor (num_points, 1)."""
+    return data_creators.gaussian_mixture_1d_score(x)
+
+
+##############################################################################
+#                         MULTICLASS CLASSIFICATION
+##############################################################################
+# No creator: all multiclass datasets are standard datasets (sklearn, Iris).
+
+
+def _multiclass_classification():
+    return make_classification(
+        n_samples=1000,
+        n_features=20,
+        n_informative=15,
+        n_redundant=5,
+        n_classes=4,
+        n_clusters_per_class=1,
+        random_state=DATA_SEED,
+    )
+
+
+def _multiclass_blobs():
+    return make_blobs(
+        n_samples=300,
+        n_features=2,
+        centers=3,
+        cluster_std=1.0,
+        random_state=DATA_SEED,
+    )
+
+
+def _multiclass_iris():
+    iris = load_iris()
+    return iris.data, iris.target
+
+
+_MULTICLASS_SOURCES = {
+    "classification": _multiclass_classification,  # 20D, 4 classes (800 / 200)
+    "blobs": _multiclass_blobs,  # 2D, 3 classes (240 / 60)
+    "iris": _multiclass_iris,  # 4D, 3 classes (120 / 30)
+}
+
+
+def load_multiclass_classification_data(dataset):
+    """
+    Load a multiclass classification dataset.
+
+    Args:
+        dataset: one of
+            - 'classification': sklearn make_classification, 20D, 4 classes (800 train, 200 test)
+            - 'blobs': sklearn make_blobs, 2D, 3 classes (240 train, 60 test)
+            - 'iris': Iris, 4D, 3 classes (120 train, 30 test)
+
+    Returns:
+        tuple: (training_instances, training_labels, test_instances, test_labels),
+        labels in {0, ..., k-1}, instances standardized with training statistics
+    """
+    _check_dataset(dataset, _MULTICLASS_SOURCES)
+
+    instances, labels = _MULTICLASS_SOURCES[dataset]()
+    train_x, train_y, test_x, test_y = _split(
+        instances, labels, 0.2, DATA_SEED, stratify=True
+    )
+
+    train_x, test_x = _standardize_instances(train_x, test_x)
+    return train_x, train_y, test_x, test_y
+
+
+##############################################################################
 #                                  MNIST
 ##############################################################################
-# torchvision and DataLoader are imported inside the functions, so they are
-# only needed when MNIST is actually used.
+# No creator: MNIST comes from torchvision. torchvision is imported inside
+# the functions, so it is only needed when MNIST is actually used.
+# (torch itself is already imported through data_creators.)
 
 
 def _mnist_dataset(train, tanh_range=False):
@@ -403,31 +433,6 @@ def load_mnist_generation_data(batch_size, tanh_range=False):
         batch_size=batch_size,
         shuffle=True,
     )
-
-
-##############################################################################
-#                  1D GAUSSIAN MIXTURE FOR GENERATIVE MODELS
-##############################################################################
-
-
-def load_gaussian_mixture_1d_data(num_samples, device="cpu"):
-    """
-    Sample the 1D Gaussian mixture (30% at -5, 70% at +5).
-
-    Returns:
-        data: tensor of shape (num_samples, 1)
-    """
-    return data_creators.create_gaussian_mixture_1d_data(num_samples, DATA_SEED, device)
-
-
-def gaussian_mixture_1d_pdf(x):
-    """Analytic density of the 1D mixture (numpy in, numpy out; for plotting)."""
-    return data_creators.gaussian_mixture_1d_pdf(x)
-
-
-def gaussian_mixture_1d_score(x):
-    """Analytic score of the 1D mixture, x: tensor (num_points, 1)."""
-    return data_creators.gaussian_mixture_1d_score(x)
 
 
 ##############################################################################

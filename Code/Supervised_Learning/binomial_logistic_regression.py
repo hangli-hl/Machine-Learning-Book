@@ -4,20 +4,24 @@
 
 
 import argparse
-
+import sys
+from pathlib import Path
 import numpy as np
 from scipy.optimize import minimize
 
-import data_creators as dc
+# Make the repository root importable so that the Data package can be found
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+
+from Data import data_loaders as dl
 import utility_functions as uf
 import plot_functions as pf
 
-# Default number of iterations for gradient descent    
+# Default number of iterations for gradient descent
 DEFAULT_NUM_ITERATIONS_GD = 10000
 # Default number of iterations for BFGS
 DEFAULT_NUM_ITERATIONS_BFGS = 100
 # Default learning rate for gradient descent
-DEFAULT_LEARNING_RATE = 0.01 
+DEFAULT_LEARNING_RATE = 0.01
 # Default convergence threshold for gradient descent
 DEFAULT_CONVERGENCE_THRESHOLD = 1e-6
 
@@ -60,11 +64,12 @@ class BinomialLogisticRegression:
             len = number of iterations actually performed
     """
 
-    def __init__(self, 
-                 num_iterations=DEFAULT_NUM_ITERATIONS_GD, 
-                 learning_rate=DEFAULT_LEARNING_RATE, 
-                 convergence_threshold=DEFAULT_CONVERGENCE_THRESHOLD
-                 ):
+    def __init__(
+        self,
+        num_iterations=DEFAULT_NUM_ITERATIONS_GD,
+        learning_rate=DEFAULT_LEARNING_RATE,
+        convergence_threshold=DEFAULT_CONVERGENCE_THRESHOLD,
+    ):
         """
         Initialize a Binomial Logistic Regression model.
         """
@@ -186,7 +191,7 @@ class BinomialLogisticRegression:
         gradient = np.append(grad_weights, grad_bias)
 
         return loss, gradient
-    
+
     # ------------------------------------------------------------------
     # Gradient descent
     # ------------------------------------------------------------------
@@ -357,8 +362,8 @@ if __name__ == "__main__":
         "--data",
         type=str,
         default="gaussians",
-        choices=["artificial", "gaussians", "iris", "jigsaw", "circle", "moons"],
-        help="Dataset to use: artificial (manual 2D), gaussians (synthetic 2D, two gaussians), "
+        choices=["gaussians", "iris", "jigsaw", "circle", "moons"],
+        help="Dataset to use: gaussians (synthetic 2D, two gaussians), "
         "iris (Iris 4D), jigsaw (synthetic 2D, xor patterns), circle (synthetic 2D, "
         "circular patterns) or moons (synthetic 2D, two half moons)",
     )
@@ -392,7 +397,7 @@ if __name__ == "__main__":
 
     # Select dataset, labels in {0, 1}
     training_instances, training_labels, test_instances, test_labels = (
-        dc.select_binary_classification_data(dataset=args.data, signed_label=False)
+        dl.load_binary_classification_data(dataset=args.data, signed_label=False)
     )
     num_features = training_instances.shape[1]
     num_classes = 2
@@ -410,7 +415,9 @@ if __name__ == "__main__":
     num_iterations = (
         args.num_iterations
         if args.num_iterations is not None
-        else {"gd": DEFAULT_NUM_ITERATIONS_GD, "bfgs": DEFAULT_NUM_ITERATIONS_BFGS}[args.algorithm]
+        else {"gd": DEFAULT_NUM_ITERATIONS_GD, "bfgs": DEFAULT_NUM_ITERATIONS_BFGS}[
+            args.algorithm
+        ]
     )
 
     # Initialize the binomial logistic regression model
@@ -438,9 +445,7 @@ if __name__ == "__main__":
 
     # Evaluate on training set
     predicted_training_labels = model.predict(training_instances)
-    training_accuracy = uf.evaluate_accuracy(
-        training_labels, predicted_training_labels
-    )
+    training_accuracy = uf.evaluate_accuracy(training_labels, predicted_training_labels)
     print(f"Training accuracy: {training_accuracy:.4f}")
 
     # Evaluate on test set

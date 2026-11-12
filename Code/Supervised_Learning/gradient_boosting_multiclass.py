@@ -4,14 +4,17 @@
 
 
 import argparse
-
+import sys
+from pathlib import Path
 import numpy as np
 
-import data_creators as dc
+# Make the repository root importable so that the Data package can be found
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+
+from Data import data_loaders as dl
+from regression_tree import RegressionTree
 import utility_functions as uf
 import plot_functions as pf
-
-from regression_tree import RegressionTree
 
 # Default number of base learners (regression trees) in the ensemble
 DEFAULT_NUM_LEARNERS = 100
@@ -360,7 +363,7 @@ if __name__ == "__main__":
 
     # Select dataset, labels in {0, 1, ..., num_classes-1}
     training_instances, training_labels, test_instances, test_labels = (
-        dc.select_multiclass_classification_data(dataset=args.data)
+        dl.load_multiclass_classification_data(dataset=args.data)
     )
     num_features = training_instances.shape[1]
     num_classes = len(np.unique(training_labels))
@@ -404,9 +407,7 @@ if __name__ == "__main__":
 
     # Evaluate on training set
     predicted_training_labels = model.predict(training_instances)
-    training_accuracy = uf.evaluate_accuracy(
-        training_labels, predicted_training_labels
-    )
+    training_accuracy = uf.evaluate_accuracy(training_labels, predicted_training_labels)
     print(f"Training accuracy: {training_accuracy:.4f}")
 
     # Evaluate on test set

@@ -5,16 +5,16 @@
 
 import argparse
 import sys
-from pathlib import Path  
+from pathlib import Path
 import numpy as np
 
 # Make the repository root importable so that the Data package can be found
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
-import utility_functions as uf
-import plot_functions as pf
 from Data import data_loaders as dl
 from classification_tree import ClassificationTree
+import utility_functions as uf
+import plot_functions as pf
 
 # Default number of base learners (classification trees) in the ensemble
 DEFAULT_NUM_LEARNERS = 100
@@ -318,8 +318,8 @@ if __name__ == "__main__":
         "--data",
         type=str,
         default="jigsaw",
-        choices=["artificial", "gaussians", "iris", "jigsaw", "circle", "moons"],
-        help="Dataset to use: artificial (manual 2D), gaussians (synthetic 2D, two gaussians), "
+        choices=["gaussians", "iris", "jigsaw", "circle", "moons"],
+        help="Dataset to use: gaussians (synthetic 2D, two gaussians), "
         "iris (Iris 4D), jigsaw (synthetic 2D, xor patterns), circle (synthetic 2D, "
         "circular patterns) or moons (synthetic 2D, two half moons)",
     )
@@ -395,9 +395,7 @@ if __name__ == "__main__":
 
     # Evaluate on training set
     predicted_training_labels = model.predict(training_instances)
-    training_accuracy = uf.evaluate_accuracy(
-        training_labels, predicted_training_labels
-    )
+    training_accuracy = uf.evaluate_accuracy(training_labels, predicted_training_labels)
     print(f"Training accuracy: {training_accuracy:.4f}")
 
     # Evaluate on test set
