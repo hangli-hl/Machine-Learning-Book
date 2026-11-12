@@ -4,13 +4,17 @@
 
 
 import argparse
-
+import sys
+from pathlib import Path
 import torch
 import torch.nn as nn
 import torch.optim as optim
 import numpy as np
 
-import data_creators as dc
+# Make the repository root importable so that the Data package can be found
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+
+from Data import data_loaders as dl
 import utility_functions as uf
 import plot_functions as pf
 import unet
@@ -381,7 +385,7 @@ if __name__ == "__main__":
     beta_end = args.beta_end
 
     # Load dataset
-    training_loader = dc.load_mnist_generation_data(batch_size, tanh_range=True)
+    training_loader = dl.load_mnist_generation_data(batch_size, tanh_range=True)
     print(
         f"Training set: {len(training_loader.dataset)} samples, "
         f"{image_channels}x{image_size}x{image_size} images"

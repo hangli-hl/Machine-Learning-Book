@@ -4,13 +4,17 @@
 
 
 import argparse
-
+import sys
+from pathlib import Path
 import torch
 import torch.nn as nn
 import torch.optim as optim
 import numpy as np
 
-import data_creators as dc
+# Make the repository root importable so that the Data package can be found
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+
+from Data import data_loaders as dl
 import utility_functions as uf
 import plot_functions as pf
 import unet
@@ -556,8 +560,8 @@ if __name__ == "__main__":
     num_gen_samples = args.num_gen_samples
 
     # Create dataset
-    print("Creating GMM data")
-    data = dc.create_gaussian_mixture_1d_data(num_samples, device)
+    print("Loading GMM data")
+    data = dl.load_gaussian_mixture_1d_data(num_samples, device)
     print(f"Training set: {num_samples} samples")
     print(f"Data mean: {data.mean().item():.3f}, std: {data.std().item():.3f}")
 

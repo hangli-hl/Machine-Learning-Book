@@ -51,8 +51,8 @@ __all__ = [
 DATA_SEED = 28
 # Random seed for clustering datasets (kept at its original value)
 CLUSTERING_DATA_SEED = 16
-# Directory for downloaded standard datasets (independent of the working directory)
-DATA_DIR = Path(__file__).resolve().parent / "raw"
+# Directory for downloaded standard datasets (torchvision creates MNIST/ below it)
+DATA_DIR = Path(__file__).resolve().parent
 
 
 ##############################################################################

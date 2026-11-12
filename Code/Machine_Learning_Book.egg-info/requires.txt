@@ -1,0 +1,6 @@
+numpy
+scikit-learn
+
+[deep]
+torch
+torchvision
