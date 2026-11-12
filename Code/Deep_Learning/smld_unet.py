@@ -505,7 +505,7 @@ if __name__ == "__main__":
     target_snr = args.target_snr
 
     # Load dataset
-    training_loader = dc.load_mnist_generation_data(batch_size, tanh_range=True)
+    training_loader = dl.load_mnist_generation_data(batch_size, tanh_range=True)
     print(
         f"Training set: {len(training_loader.dataset)} samples, "
         f"{image_channels}x{image_size}x{image_size} images"

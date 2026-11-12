@@ -667,5 +667,5 @@ if __name__ == "__main__":
         samples,
         title=f"{MODEL_NAME}: Original Data vs Generated Samples",
         file_name=pf.default_file_name(MODEL_NAME, "gen"),
-        gmm_pdf=dc.gaussian_mixture_1d_pdf,
+        gmm_pdf=dl.gaussian_mixture_1d_pdf,
     )

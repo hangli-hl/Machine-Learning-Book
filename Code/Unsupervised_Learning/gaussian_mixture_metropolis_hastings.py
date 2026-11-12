@@ -4,16 +4,11 @@
 
 
 import argparse
-import sys
-from pathlib import Path
 import numpy as np
 from scipy.special import logsumexp
 from scipy.stats import invwishart, multivariate_normal
 from collections import deque
 from sklearn.metrics import adjusted_rand_score
-
-# Make the repository root importable so that the Data package can be found
-sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from Data import data_loaders as dl
 import plot_functions as pf

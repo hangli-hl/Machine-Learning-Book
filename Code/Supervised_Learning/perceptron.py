@@ -3,13 +3,8 @@
 ##############################################################################
 
 
-import sys
 import argparse
-from pathlib import Path
 import numpy as np
-
-# Make the repository root importable so that the Data package can be found
-sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from Data import data_loaders as dl
 import utility_functions as uf

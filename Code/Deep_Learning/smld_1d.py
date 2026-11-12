@@ -4,16 +4,11 @@
 
 
 import argparse
-import sys
-from pathlib import Path
 import torch
 import torch.nn as nn
 import torch.optim as optim
 import numpy as np
 import math
-
-# Make the repository root importable so that the Data package can be found
-sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from Data import data_loaders as dl
 import utility_functions as uf
@@ -610,7 +605,7 @@ if __name__ == "__main__":
     print("Plotting learned score function")
     grid = torch.linspace(-10.0, 10.0, 400, device=device).reshape(-1, 1)
     predicted = compute_score_function(model, grid, noise_level=0)
-    true = dc.gaussian_mixture_1d_score(grid).detach().cpu().numpy().ravel()
+    true = dl.gaussian_mixture_1d_score(grid).detach().cpu().numpy().ravel()
     pf.plot_1d_score_function(
         grid.detach().cpu().numpy().ravel(),
         true,
@@ -637,5 +632,5 @@ if __name__ == "__main__":
         samples,
         title=f"{MODEL_NAME}: Original Data vs Generated Samples",
         file_name=pf.default_file_name(MODEL_NAME, "gen"),
-        gmm_pdf=dc.gaussian_mixture_1d_pdf,
+        gmm_pdf=dl.gaussian_mixture_1d_pdf,
     )
