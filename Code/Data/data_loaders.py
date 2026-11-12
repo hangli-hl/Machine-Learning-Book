@@ -20,6 +20,8 @@
 #   binary labels       : {0, 1} or {-1, 1} (signed_label=True); 1 = positive
 #   multiclass / cluster labels : {0, 1, ..., k-1}
 #   regression values   : float, standardized
+#   split sizes         : every source is registered with (num_train, num_test),
+#                         which must add up to the total number of samples
 
 from pathlib import Path
 
@@ -32,8 +34,9 @@ from sklearn.datasets import (
     make_moons,
 )
 from sklearn.model_selection import train_test_split
+from torchvision import datasets, transforms
 
-from . import data_creators
+from . import data_creators as dc
 
 __all__ = [
     "load_binary_classification_data",
@@ -49,8 +52,6 @@ __all__ = [
 
 # Random seed for supervised learning and deep learning datasets
 DATA_SEED = 28
-# Random seed for clustering datasets (kept at its original value)
-CLUSTERING_DATA_SEED = 16
 # Directory for downloaded standard datasets (torchvision creates MNIST/ below it)
 DATA_DIR = Path(__file__).resolve().parent
 
@@ -98,17 +99,27 @@ def _encode_labels(labels, signed_label):
     return np.where(labels == 1, 1, -1) if signed_label else labels
 
 
-def _split(instances, targets, test_size, seed, stratify):
+def _split(instances, targets, num_train, num_test, seed, stratify):
     """
-    Shuffled train/test split.
+    Shuffled train/test split with explicit sizes.
+
+    Args:
+        num_train, num_test: positive integers, num_train + num_test must
+            equal the total number of samples (no sample is silently dropped)
 
     Returns:
         tuple: (training_instances, training_targets, test_instances, test_targets)
     """
+    if num_train + num_test != len(instances):
+        raise ValueError(
+            f"num_train + num_test = {num_train + num_test}, "
+            f"but the dataset has {len(instances)} samples"
+        )
     train_x, test_x, train_y, test_y = train_test_split(
         instances,
         targets,
-        test_size=test_size,
+        train_size=num_train,
+        test_size=num_test,
         random_state=seed,
         stratify=targets if stratify else None,
     )
@@ -118,21 +129,18 @@ def _split(instances, targets, test_size, seed, stratify):
 ##############################################################################
 #                           BINARY CLASSIFICATION
 ##############################################################################
-# Each source returns raw (instances, labels in {0, 1}); the registry also
-# stores the test size (int = number of test samples, float = fraction).
-# All binary datasets use a stratified split.
 
 
 def _binary_gaussians():
-    return data_creators.create_gaussians_binary_data(DATA_SEED)
+    return dc.create_gaussians_binary_data(DATA_SEED)
 
 
 def _binary_jigsaw():
-    return data_creators.create_jigsaw_binary_data(DATA_SEED)
+    return dc.create_jigsaw_binary_data(DATA_SEED)
 
 
 def _binary_circle():
-    return data_creators.create_circle_binary_data(DATA_SEED)
+    return dc.create_circle_binary_data(DATA_SEED)
 
 
 def _binary_moons():
@@ -145,12 +153,13 @@ def _binary_iris():
     return iris.data, (iris.target == 2).astype(int)
 
 
+# dataset -> (source, (num_train, num_test))
 _BINARY_SOURCES = {
-    "gaussians": (_binary_gaussians, 20),  # synthetic, 200 train / 20 test
-    "jigsaw": (_binary_jigsaw, 20),  # synthetic XOR-like, 200 / 20
-    "circle": (_binary_circle, 20),  # synthetic rings, 200 / 20
-    "moons": (_binary_moons, 20),  # sklearn two moons, 200 / 20
-    "iris": (_binary_iris, 0.2),  # Iris (4D), 120 / 30
+    "gaussians": (_binary_gaussians, (200, 20)),  # synthetic
+    "jigsaw": (_binary_jigsaw, (200, 20)),  # synthetic XOR-like
+    "circle": (_binary_circle, (200, 20)),  # synthetic rings
+    "moons": (_binary_moons, (200, 20)),  # sklearn two moons
+    "iris": (_binary_iris, (120, 30)),  # Iris (4D)
 }
 
 
@@ -173,10 +182,10 @@ def load_binary_classification_data(dataset, signed_label=False):
     """
     _check_dataset(dataset, _BINARY_SOURCES)
 
-    source, test_size = _BINARY_SOURCES[dataset]
+    source, (num_train, num_test) = _BINARY_SOURCES[dataset]
     instances, labels = source()
     train_x, train_y, test_x, test_y = _split(
-        instances, labels, test_size, DATA_SEED, stratify=True
+        instances, labels, num_train, num_test, DATA_SEED, stratify=True
     )
 
     train_x, test_x = _standardize_instances(train_x, test_x)
@@ -189,126 +198,8 @@ def load_binary_classification_data(dataset, signed_label=False):
 
 
 ##############################################################################
-#                               REGRESSION
-##############################################################################
-
-
-def _regression_plane():
-    return data_creators.create_plane_regression_data(DATA_SEED)
-
-
-def _regression_diabetes():
-    diabetes = load_diabetes()
-    return diabetes.data, diabetes.target
-
-
-_REGRESSION_SOURCES = {
-    "plane": (_regression_plane, 20),  # synthetic plane (200 / 20)
-    "diabetes": (_regression_diabetes, 0.2),  # Diabetes, 10D (353 / 89)
-}
-
-
-def load_regression_data(dataset):
-    """
-    Load a regression dataset.
-
-    Args:
-        dataset: one of
-            - 'plane': y = 5*x1 - 3*x2 + 2 + noise (200 train, 20 test)
-            - 'diabetes': Diabetes, 10D (353 train, 89 test)
-
-    Returns:
-        tuple: (training_instances, training_values, test_instances, test_values),
-        instances and values standardized with training statistics
-    """
-    _check_dataset(dataset, _REGRESSION_SOURCES)
-
-    source, test_size = _REGRESSION_SOURCES[dataset]
-    instances, values = source()
-    train_x, train_y, test_x, test_y = _split(
-        instances, values, test_size, DATA_SEED, stratify=False
-    )
-
-    train_x, test_x = _standardize_instances(train_x, test_x)
-    train_y, test_y = _standardize_values(train_y, test_y)
-    return train_x, train_y, test_x, test_y
-
-
-##############################################################################
-#                                CLUSTERING
-##############################################################################
-
-
-def _clustering_gaussians():
-    return data_creators.create_gaussians_clustering_data(CLUSTERING_DATA_SEED)
-
-
-def _clustering_iris():
-    iris = load_iris()
-    return iris.data, iris.target
-
-
-_CLUSTERING_SOURCES = {
-    "gaussians": (_clustering_gaussians, 100),  # 3 clusters (1000 / 100)
-    "iris": (_clustering_iris, 0.2),  # 3 clusters (120 / 30)
-}
-
-
-def load_clustering_data(dataset):
-    """
-    Load a clustering dataset (labels are only for evaluation).
-
-    Args:
-        dataset: one of
-            - 'gaussians': 2D Gaussian mixture, 3 clusters (1000 train, 100 test)
-            - 'iris': Iris, 4D, 3 clusters (120 train, 30 test)
-
-    Returns:
-        tuple: (training_samples, training_labels, test_samples, test_labels, num_clusters),
-        samples standardized with training statistics
-    """
-    _check_dataset(dataset, _CLUSTERING_SOURCES)
-
-    source, test_size = _CLUSTERING_SOURCES[dataset]
-    samples, labels = source()
-    train_x, train_y, test_x, test_y = _split(
-        samples, labels, test_size, CLUSTERING_DATA_SEED, stratify=True
-    )
-
-    num_clusters = len(np.unique(np.concatenate([train_y, test_y])))
-    train_x, test_x = _standardize_instances(train_x, test_x)
-    return train_x, train_y, test_x, test_y, num_clusters
-
-
-##############################################################################
-#                  1D GAUSSIAN MIXTURE FOR GENERATIVE MODELS
-##############################################################################
-
-
-def load_gaussian_mixture_1d_data(num_samples, device="cpu"):
-    """
-    Sample the 1D Gaussian mixture (30% at -5, 70% at +5).
-
-    Returns:
-        data: tensor of shape (num_samples, 1)
-    """
-    return data_creators.create_gaussian_mixture_1d_data(num_samples, DATA_SEED, device)
-
-
-def gaussian_mixture_1d_pdf(x):
-    """Analytic density of the 1D mixture (numpy in, numpy out; for plotting)."""
-    return data_creators.gaussian_mixture_1d_pdf(x)
-
-
-def gaussian_mixture_1d_score(x):
-    """Analytic score of the 1D mixture, x: tensor (num_points, 1)."""
-    return data_creators.gaussian_mixture_1d_score(x)
-
-
-##############################################################################
 #                         MULTICLASS CLASSIFICATION
 ##############################################################################
-# No creator: all multiclass datasets are standard datasets (sklearn, Iris).
 
 
 def _multiclass_classification():
@@ -338,10 +229,11 @@ def _multiclass_iris():
     return iris.data, iris.target
 
 
+# dataset -> (source, (num_train, num_test))
 _MULTICLASS_SOURCES = {
-    "classification": _multiclass_classification,  # 20D, 4 classes (800 / 200)
-    "blobs": _multiclass_blobs,  # 2D, 3 classes (240 / 60)
-    "iris": _multiclass_iris,  # 4D, 3 classes (120 / 30)
+    "classification": (_multiclass_classification, (800, 200)),  # 20D, 4 classes
+    "blobs": (_multiclass_blobs, (240, 60)),  # 2D, 3 classes
+    "iris": (_multiclass_iris, (120, 30)),  # 4D, 3 classes
 }
 
 
@@ -361,9 +253,10 @@ def load_multiclass_classification_data(dataset):
     """
     _check_dataset(dataset, _MULTICLASS_SOURCES)
 
-    instances, labels = _MULTICLASS_SOURCES[dataset]()
+    source, (num_train, num_test) = _MULTICLASS_SOURCES[dataset]
+    instances, labels = source()
     train_x, train_y, test_x, test_y = _split(
-        instances, labels, 0.2, DATA_SEED, stratify=True
+        instances, labels, num_train, num_test, DATA_SEED, stratify=True
     )
 
     train_x, test_x = _standardize_instances(train_x, test_x)
@@ -371,17 +264,131 @@ def load_multiclass_classification_data(dataset):
 
 
 ##############################################################################
+#                               REGRESSION
+##############################################################################
+
+
+def _regression_plane():
+    return dc.create_plane_regression_data(DATA_SEED)
+
+
+def _regression_diabetes():
+    diabetes = load_diabetes()
+    return diabetes.data, diabetes.target
+
+
+# dataset -> (source, (num_train, num_test))
+_REGRESSION_SOURCES = {
+    "plane": (_regression_plane, (200, 20)),  # synthetic plane
+    "diabetes": (_regression_diabetes, (353, 89)),  # Diabetes, 10D
+}
+
+
+def load_regression_data(dataset):
+    """
+    Load a regression dataset.
+
+    Args:
+        dataset: one of
+            - 'plane': y = 5*x1 - 3*x2 + 2 + noise (200 train, 20 test)
+            - 'diabetes': Diabetes, 10D (353 train, 89 test)
+
+    Returns:
+        tuple: (training_instances, training_values, test_instances, test_values),
+        instances and values standardized with training statistics
+    """
+    _check_dataset(dataset, _REGRESSION_SOURCES)
+
+    source, (num_train, num_test) = _REGRESSION_SOURCES[dataset]
+    instances, values = source()
+    train_x, train_y, test_x, test_y = _split(
+        instances, values, num_train, num_test, DATA_SEED, stratify=False
+    )
+
+    train_x, test_x = _standardize_instances(train_x, test_x)
+    train_y, test_y = _standardize_values(train_y, test_y)
+    return train_x, train_y, test_x, test_y
+
+
+##############################################################################
+#                                CLUSTERING
+##############################################################################
+
+
+def _clustering_gaussians():
+    return dc.create_gaussians_clustering_data(DATA_SEED)
+
+
+def _clustering_iris():
+    iris = load_iris()
+    return iris.data, iris.target
+
+
+# dataset -> (source, (num_train, num_test))
+_CLUSTERING_SOURCES = {
+    "gaussians": (_clustering_gaussians, (1000, 100)),  # 3 clusters
+    "iris": (_clustering_iris, (120, 30)),  # 3 clusters
+}
+
+
+def load_clustering_data(dataset):
+    """
+    Load a clustering dataset (labels are only for evaluation).
+
+    Args:
+        dataset: one of
+            - 'gaussians': 2D Gaussian mixture, 3 clusters (1000 train, 100 test)
+            - 'iris': Iris, 4D, 3 clusters (120 train, 30 test)
+
+    Returns:
+        tuple: (training_samples, training_labels, test_samples, test_labels, num_clusters),
+        samples standardized with training statistics
+    """
+    _check_dataset(dataset, _CLUSTERING_SOURCES)
+
+    source, (num_train, num_test) = _CLUSTERING_SOURCES[dataset]
+    samples, labels = source()
+    train_x, train_y, test_x, test_y = _split(
+        samples, labels, num_train, num_test, DATA_SEED, stratify=True
+    )
+
+    train_x, test_x = _standardize_instances(train_x, test_x)
+    return train_x, train_y, test_x, test_y
+
+
+##############################################################################
+#                  1D GAUSSIAN MIXTURE FOR GENERATIVE MODELS
+##############################################################################
+
+
+def load_gaussian_mixture_1d_data(num_samples, device="cpu"):
+    """
+    Sample the 1D Gaussian mixture (30% at -5, 70% at +5).
+
+    Returns:
+        data: tensor of shape (num_samples, 1)
+    """
+    return dc.create_gaussian_mixture_1d_data(num_samples, DATA_SEED, device)
+
+
+def gaussian_mixture_1d_pdf(x):
+    """Analytic density of the 1D mixture (numpy in, numpy out; for plotting)."""
+    return dc.gaussian_mixture_1d_pdf(x)
+
+
+def gaussian_mixture_1d_score(x):
+    """Analytic score of the 1D mixture, x: tensor (num_points, 1)."""
+    return dc.gaussian_mixture_1d_score(x)
+
+
+##############################################################################
 #                                  MNIST
 ##############################################################################
-# No creator: MNIST comes from torchvision. torchvision is imported inside
-# the functions, so it is only needed when MNIST is actually used.
-# (torch itself is already imported through data_creators.)
 
 
 def _mnist_dataset(train, tanh_range=False):
     """MNIST torchvision dataset, downloaded to DATA_DIR if missing."""
-    from torchvision import datasets, transforms
-
+ 
     steps = [transforms.ToTensor()]
     if tanh_range:
         steps.append(transforms.Normalize((0.5,), (0.5,)))  # pixels -> [-1, 1]

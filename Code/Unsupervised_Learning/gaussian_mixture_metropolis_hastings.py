@@ -605,9 +605,9 @@ if __name__ == "__main__":
         training_labels,
         test_samples,
         test_labels,
-        num_components_in_data,
     ) = dl.load_clustering_data(dataset=args.data)
     num_features = training_samples.shape[1]
+    num_components_in_data = len(np.unique(training_labels))
 
     # Use specified num_components or fall back to true number
     num_components = (
