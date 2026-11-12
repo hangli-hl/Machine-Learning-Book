@@ -18,7 +18,6 @@
 import numpy as np
 import torch
 
-
 ##############################################################################
 #                           HELPER FUNCTIONS
 ##############################################################################
@@ -101,10 +100,16 @@ def create_jigsaw_binary_data(seed):
 
     cov = [[1.5, 0.3], [0.3, 1.5]]
     pos_instances = _generate_gaussian_points(
-        rng, jigsaw_pos_means, [cov] * len(jigsaw_pos_means), [55] * len(jigsaw_pos_means)
+        rng,
+        jigsaw_pos_means,
+        [cov] * len(jigsaw_pos_means),
+        [55] * len(jigsaw_pos_means),
     )
     neg_instances = _generate_gaussian_points(
-        rng, jigsaw_neg_means, [cov] * len(jigsaw_neg_means), [55] * len(jigsaw_neg_means)
+        rng,
+        jigsaw_neg_means,
+        [cov] * len(jigsaw_neg_means),
+        [55] * len(jigsaw_neg_means),
     )
     instances = np.vstack((pos_instances, neg_instances))
     return instances, _binary_labels(110, 110)
@@ -226,6 +231,8 @@ def gaussian_mixture_1d_score(x):
         score: torch tensor of shape (num_points, 1)
     """
     points = x.detach().reshape(-1).requires_grad_(True)
-    log_prob = gaussian_mixture_1d_distribution(device=points.device).log_prob(points).sum()
+    log_prob = (
+        gaussian_mixture_1d_distribution(device=points.device).log_prob(points).sum()
+    )
     score = torch.autograd.grad(log_prob, points)[0]
     return score.reshape(-1, 1)

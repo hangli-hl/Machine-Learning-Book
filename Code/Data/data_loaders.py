@@ -433,16 +433,3 @@ def load_mnist_generation_data(batch_size, tanh_range=False):
         batch_size=batch_size,
         shuffle=True,
     )
-
-
-##############################################################################
-#        TRANSITIONAL ALIASES (OPTIONAL, DELETE AFTER MIGRATING CALL SITES)
-##############################################################################
-
-select_binary_classification_data = load_binary_classification_data
-select_multiclass_classification_data = load_multiclass_classification_data
-select_regression_data = load_regression_data
-select_clustering_data = load_clustering_data
-select_ffn_binary_data = load_binary_classification_data
-select_ffn_multiclass_data = load_multiclass_classification_data
-create_gaussian_mixture_1d_data = load_gaussian_mixture_1d_data

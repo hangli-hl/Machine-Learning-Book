@@ -10,7 +10,6 @@ from Data import data_loaders as dl
 import utility_functions as uf
 import plot_functions as pf
 
-
 # Small constant added to every variance to avoid division by zero or log(0)
 VAR_EPS = 1e-6
 

@@ -237,8 +237,7 @@ if __name__ == "__main__":
         type=str,
         default="plane",
         choices=["plane", "diabetes"],
-        help="Dataset to use: plane (synthetic 2D) "
-        "or diabetes (Diabetes 10D)",
+        help="Dataset to use: plane (synthetic 2D) " "or diabetes (Diabetes 10D)",
     )
     parser.add_argument(
         "--num-learners",
