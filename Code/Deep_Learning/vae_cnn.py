@@ -18,7 +18,7 @@ import plot_functions as pf
 # Name used in plot titles and file names
 MODEL_NAME = "VAE-CNN"
 # Random seed for reproducibility
-MODEL_SEED = 36
+MODEL_SEED = 64
 # Default size of latent representation
 DEFAULT_LATENT_SIZE = 16
 # Default number of training epochs

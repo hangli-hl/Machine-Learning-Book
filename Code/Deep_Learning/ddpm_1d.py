@@ -16,7 +16,7 @@ import unet
 # Name used in plot titles and file names
 MODEL_NAME = "DDPM-1D"
 # Random seed for reproducibility
-MODEL_SEED = 28
+MODEL_SEED = 64
 # Default number of training samples
 DEFAULT_NUM_SAMPLES = 2000
 # Default number of training iterations

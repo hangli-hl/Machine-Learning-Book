@@ -14,8 +14,8 @@
 #
 # Label convention: binary labels are {0, 1} with positives (1) listed first.
 
+# Import numpy, torch is imported inside the functions of Gaussian mixture 1D data
 import numpy as np
-import torch
 
 ##############################################################################
 #                           HELPER FUNCTIONS
@@ -190,6 +190,8 @@ def create_gaussian_mixture_1d_data(num_samples, seed, device="cpu"):
     Returns:
         data: tensor of shape (num_samples, 1)
     """
+    import torch
+
     generator = torch.Generator(device=device).manual_seed(seed)
 
     weights = torch.tensor([0.3, 0.7], device=device)
@@ -213,6 +215,8 @@ def gaussian_mixture_1d_distribution(device="cpu"):
     Returns:
         distribution: a torch.distributions.MixtureSameFamily
     """
+    import torch
+
     return torch.distributions.MixtureSameFamily(
         torch.distributions.Categorical(torch.tensor([0.3, 0.7], device=device)),
         torch.distributions.Normal(
@@ -229,6 +233,8 @@ def gaussian_mixture_1d_pdf(x):
     Args:
         x: evaluation points, numpy array of any shape
     """
+    import torch
+
     points = torch.as_tensor(x, dtype=torch.float32)
     pdf = gaussian_mixture_1d_distribution(device=points.device).log_prob(points).exp()
     return pdf.detach().cpu().numpy()
@@ -244,6 +250,8 @@ def gaussian_mixture_1d_score(x):
     Returns:
         score: torch tensor of shape (num_points, 1)
     """
+    import torch
+
     points = x.detach().reshape(-1).requires_grad_(True)
     log_prob = (
         gaussian_mixture_1d_distribution(device=points.device).log_prob(points).sum()

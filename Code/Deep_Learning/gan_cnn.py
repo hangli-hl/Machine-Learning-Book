@@ -15,7 +15,7 @@ import plot_functions as pf
 # Name used in plot titles and file names
 MODEL_NAME = "GAN-CNN"
 # Random seed for reproducibility
-MODEL_SEED = 36
+MODEL_SEED = 64
 # Default size of latent noise vectors
 DEFAULT_LATENT_SIZE = 64
 # Default number of training epochs

@@ -23,7 +23,7 @@ Each algorithm is implemented from scratch with NumPy and SciPy and exposed as a
 
 - `plot_functions.py` - Shared plotting: convergence curves with an optional secondary axis, ground-truth versus learned clustering scatter plots with Hungarian label matching, and PCA projections of the parameter trajectory coloured by the diagnostic value.
 
-`plot_functions.py` is a library imported by the algorithm scripts; all the others are entry points. The four algorithm scripts do not import each other.
+The files under Shared Modules are libraries imported by the algorithm scripts; all the others are entry points. The four algorithm scripts do not import each other.
 
 Datasets are not created in this directory: they come from `Data/data_loaders.py` (see [Datasets](#datasets)).
 
@@ -37,20 +37,17 @@ Python 3.11+ with `numpy`, `scipy`, `scikit-learn` and `matplotlib`.
 pip install numpy scipy scikit-learn matplotlib
 ```
 
-### Install the repository in editable mode (once per environment)
+PyTorch is not required: the `Data` package imports it only inside the MNIST and 1D Gaussian mixture loaders, which these scripts do not use.
 
-All scripts import their data from the `Data` package at the repository root, which lies outside this directory. Install the repository once per environment, from the repository root (where `pyproject.toml` is located):
+### Install the repository (once per environment)
+
+All scripts import their data from the `Data` package at the repository root. From the repository root (where `pyproject.toml` is located), run:
 
 ```bash
 python -m pip install -e .
 ```
 
-What this does:
-
-- `-e` (editable) registers the repository in the current Python environment as a link to the source tree instead of copying files. Therefore `from Data.data_loaders import ...` works from any working directory.
-- Edits to the source files take effect immediately, with no reinstall.
-- It is needed only once per environment (virtualenv, conda env, ...); repeat it when you create a new one.
-- Without it, the scripts fail with `ModuleNotFoundError: No module named 'Data'`.
+Without it, the scripts fail with `ModuleNotFoundError: No module named 'Data'`. See [Getting Started](../README.md#getting-started) in the root README for details.
 
 ### Running the scripts
 
@@ -96,12 +93,9 @@ python gaussian_mixture_metropolis_hastings.py --num-iterations 2000 --burn-in 1
 
 ## Datasets
 
-Chosen with `--data`. Data are loaded through `load_clustering_data` in `Data/data_loaders.py`. Both datasets ship ground-truth labels and a fixed train/test split, and all features are standardized with the training mean and standard deviation. The labels are never used for training; they serve only for evaluation and for the ground-truth panel of the clustering plot.
+Chosen with `--data`. Data are loaded through `load_clustering_data` in `Data/data_loaders.py`; the available datasets, sizes and conventions are listed in [Data/README.md](../Data/README.md). Both datasets ship ground-truth labels and a fixed train/test split, and all features are standardized with the training mean and standard deviation. The labels are never used for training; they serve only for evaluation and for the ground-truth panel of the clustering plot.
 
-| Name | Size | Clusters | Notes |
-| --- | --- | --- | --- |
-| `gaussians` | 1000 / 100, 2D | 3 | Unbalanced weights `(0.4, 0.5, 0.1)`, non-spherical covariances, stratified split; the default |
-| `iris` | 120 / 30, 4D | 3 | Real data, stratified split, two classes overlap |
+The default is `gaussians` (2D, so all figures are produced). The 4D `iris` dataset is also available.
 
 Model visualizations require 2D features, so the clustering plot is skipped for `iris`, while the training-curve and trajectory plots still apply.
 
@@ -121,14 +115,14 @@ Iterative methods:
 
 | Option | Scripts | Default | Meaning |
 | --- | --- | --- | --- |
-| `--num-iterations` | all | `100` (K-Means) / `1000` (EM) / `20000` (MH) / `5000` (Gibbs) | Iteration budget; for the samplers, the total number of iterations including burn-in |
-| `--convergence-threshold` | K-Means, EM | `1e-6` / `1e-4` | Stop when the squared Frobenius norm of the centroid update (K-Means) or the per-sample log-likelihood change (EM) drops to this value or below |
+| `--num-iterations` | all | `100` (K-Means), `1000` (EM), `20000` (MH), `5000` (Gibbs) | Iteration budget; for the samplers, the total number of iterations including burn-in |
+| `--convergence-threshold` | K-Means, EM | `1e-6` (K-Means), `1e-4` (EM) | Stop when the squared Frobenius norm of the centroid update (K-Means) or the per-sample log-likelihood change (EM) drops to this value or below |
 
 Sampling methods:
 
 | Option | Scripts | Default | Meaning |
 | --- | --- | --- | --- |
-| `--burn-in` | MH, Gibbs | `10000` / `1000` | Iterations discarded before recording; must be `< --num-iterations` |
+| `--burn-in` | MH, Gibbs | `10000` (MH), `1000` (Gibbs) | Iterations discarded before recording; must be `< --num-iterations` |
 | `--proposal-step` | MH | auto | Initial step of the Gaussian random walk on the means; auto-scaled from the data and the sample size when omitted, then tuned during burn-in towards an acceptance rate of 0.234 and frozen afterwards |
 
 The prior hyperparameters of the Gibbs sampler and the remaining tuning constants of the MH sampler are module-level constants in the scripts, not command-line options.
@@ -156,14 +150,18 @@ All figures are saved to `./plot` (created automatically, re-runs overwrite prev
 
 Details of the three figures:
 
-* **Training curve** - for MH, the acceptance rate is the windowed rate over the last 200 iterations, and the counters restart at the burn-in boundary, when the proposal scales are frozen.
-* **Trajectory plot** - flattened parameters (centroids for K-Means; coefficients, means and covariances for the GMMs) are standardized column-wise and projected by PCA. The start, end and best points are highlighted, and the retained fraction of variance is reported on the axes. "Best" means the minimum SSE for K-Means, the maximum log-likelihood for EM and MH, and the maximum log-posterior for Gibbs. For the samplers, every 10th snapshot is kept, the best one is always kept, and repeated snapshots (rejected proposals) are dropped. The plot is skipped with a message when fewer than three distinct snapshots remain, for example when K-Means converges within a couple of iterations.
-* **Clustering plot** - the training samples with the true and the learned centers (red crosses), sharing one colour scale. Predicted labels are permuted by Hungarian matching to best fit the true ones, which changes colours only, never the partition.
+- **Training curve** - for MH, the acceptance rate is the windowed rate over the last 200 iterations, and the counters restart at the burn-in boundary, when the proposal scales are frozen.
+- **Trajectory plot** - flattened parameters (centroids for K-Means; coefficients, means and covariances for the GMMs) are standardized column-wise and projected by PCA. The start, end and best points are highlighted, and the retained fraction of variance is reported on the axes. "Best" means the minimum SSE for K-Means, the maximum log-likelihood for EM and MH, and the maximum log-posterior for Gibbs. For the samplers, every 10th snapshot is kept, the best one is always kept, and repeated snapshots (rejected proposals) are dropped. The plot is skipped with a message when fewer than three distinct snapshots remain, for example when K-Means converges within a couple of iterations.
+- **Clustering plot** - the training samples with the true and the learned centers (red crosses), sharing one colour scale. Predicted labels are permuted by Hungarian matching to best fit the true ones, which changes colours only, never the partition.
 
 On a headless machine, set a non-interactive backend so that `plt.show()` does not block:
 
 ```bash
+# Linux / macOS
 MPLBACKEND=Agg python k_means_clustering.py
+
+# Windows (PowerShell)
+$env:MPLBACKEND = "Agg"; python k_means_clustering.py
 ```
 
 ---
@@ -172,7 +170,7 @@ MPLBACKEND=Agg python k_means_clustering.py
 
 Each script prints the Adjusted Rand Index between the ground-truth labels and the learned cluster assignments on both the training and the test set, computed with `sklearn.metrics.adjusted_rand_score`:
 
-* **ARI** - lies in `[-1, 1]`; `1` means identical partitions and values near `0` mean chance-level agreement. It is invariant to any permutation of the cluster ids, so no label matching is needed for the numbers.
+- **ARI** - lies in `[-1, 1]`; `1` means identical partitions and values near `0` mean chance-level agreement. It is invariant to any permutation of the cluster ids, so no label matching is needed for the numbers.
 
 The test samples are assigned by `predict` under the final parameters, which are chosen as follows:
 
@@ -183,4 +181,4 @@ The test samples are assigned by `predict` under the final parameters, which are
 | Metropolis-Hastings | Post-burn-in sample with the highest log-likelihood | Post-burn-in acceptance rate, best log-likelihood |
 | Gibbs sampling | Post-burn-in sample with the highest log-posterior | Best log-posterior (up to a constant) |
 
-All four methods start from `k` distinct random training samples as initial centroids or means, so the result is a local optimum that depends on the initialization. To make repeated runs reproducible, every script fixes `MODEL_SEED` after the data is loaded (`32` for K-Means, EM and MH, `64` for Gibbs sampling); the train/test split is fixed by a random seed inside the `Data` package, and `plot_functions.py` uses `PLOT_SEED = 64` for the PCA.
+All four methods start from `k` distinct random training samples as initial centroids or means, so the result is a local optimum that depends on the initialization. To make repeated runs reproducible, every script fixes `MODEL_SEED = 64` after the data is loaded; the train/test split is fixed by `DATA_SEED = 32` inside the `Data` package, and `plot_functions.py` uses `PLOT_SEED = 64` for the PCA.

@@ -12,7 +12,7 @@ import matplotlib.pyplot as plt
 from sklearn.manifold import TSNE
 
 # Random seed for reproducibility
-MODEL_SEED = 28
+MODEL_SEED = 64
 
 # Directory for analysis plots
 PLOT_DIR = "./plot"

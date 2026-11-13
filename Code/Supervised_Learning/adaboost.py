@@ -11,6 +11,8 @@ from classification_tree import ClassificationTree
 import utility_functions as uf
 import plot_functions as pf
 
+# Random seed for reproducibility
+MODEL_SEED = 64
 # Default number of base learners (classification trees) in the ensemble
 DEFAULT_NUM_LEARNERS = 100
 # Default maximum depth of each base classification tree
@@ -362,7 +364,6 @@ if __name__ == "__main__":
     )
 
     # Random seed for reproducibility, after data creation
-    MODEL_SEED = 36
     np.random.seed(MODEL_SEED)
 
     # Initialize AdaBoost model

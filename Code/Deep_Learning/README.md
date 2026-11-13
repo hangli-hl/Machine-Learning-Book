@@ -48,7 +48,7 @@ The two feedforward networks `ffn_binary.py` and `ffn_multiclass.py` are impleme
 - `utility_functions.py` - Shared utilities: NumPy activation and loss functions, accuracy evaluation, collection of misclassified instances, VAE latent extraction, and device selection.
 - `plot_functions.py` - Shared plotting: training curves, decision boundaries, misclassified images, VAE latent space, 1D trajectories, score and velocity fields, generated image grids, and generation progress.
 
-The last three files are libraries imported by the model scripts; all the others are entry points.
+The files under Shared Modules are libraries imported by the model scripts; all the others are entry points.
 
 Datasets are not created in this directory: they come from `Data/data_loaders.py` (see [Datasets](#datasets)).
 
@@ -56,28 +56,23 @@ Datasets are not created in this directory: they come from `Data/data_loaders.py
 
 ## Requirements
 
-Python 3.11+ with `numpy`, `torch`, `torchvision`, `scikit-learn` and `matplotlib`.
+Python 3.11+ with `numpy`, `scikit-learn`, `matplotlib`, `torch` and `torchvision`.
 
 ```bash
-pip install numpy torch torchvision scikit-learn matplotlib
+pip install numpy scikit-learn matplotlib torch torchvision
 ```
 
-`ffn_binary.py` and `ffn_multiclass.py` need only `numpy`, `scikit-learn` and `matplotlib`.
+`ffn_binary.py` and `ffn_multiclass.py` need only `numpy`, `scikit-learn` and `matplotlib`, because the `Data` package imports PyTorch only inside the MNIST and 1D Gaussian mixture loaders.
 
-### Install the repository in editable mode (once per environment)
+### Install the repository (once per environment)
 
-All scripts import their data from the `Data` package at the repository root, which lies outside this directory. Install the repository once per environment, from the repository root (where `pyproject.toml` is located):
+All scripts import their data from the `Data` package at the repository root. From the repository root (where `pyproject.toml` is located), run:
 
 ```bash
 python -m pip install -e .
 ```
 
-What this does:
-
-- `-e` (editable) registers the repository in the current Python environment as a link to the source tree instead of copying files. Therefore `from Data.data_loaders import ...` works from any working directory.
-- Edits to the source files take effect immediately, with no reinstall.
-- It is needed only once per environment (virtualenv, conda env, ...); repeat it when you create a new one.
-- Without it, the scripts fail with `ModuleNotFoundError: No module named 'Data'`.
+Without it, the scripts fail with `ModuleNotFoundError: No module named 'Data'`. See [Getting Started](../README.md#getting-started) in the root README for details.
 
 ### Running the scripts
 
@@ -143,16 +138,16 @@ python ddpm_unet.py --num-epochs 1
 
 ## Datasets
 
-All data are loaded through `Data/data_loaders.py`, using `load_binary_classification_data`, `load_multiclass_classification_data`, `load_mnist_classification_data` / `load_mnist_generation_data` and `load_gaussian_mixture_1d_data`. Splits are fixed by random seeds inside the `Data` package.
+All data are loaded through `Data/data_loaders.py`; the dataset names, sizes and conventions are listed in [Data/README.md](../Data/README.md). Splits are fixed by `DATA_SEED` inside the `Data` package.
 
-| Dataset | Used by | Size | Notes |
+| Scripts | Loader | Data | Default |
 | --- | --- | --- | --- |
-| 2D binary (`gaussians`, `jigsaw`, `circle`, `moons`) | `ffn_binary.py` | 200 / 20, 2D, 2 classes | Synthetic, standardized; selected with `--data`, default `jigsaw` |
-| Multiclass (`classification`, `blobs`, `iris`) | `ffn_multiclass.py` | 800 / 200, 20D, 4 classes; 240 / 60, 2D, 3 classes; 120 / 30, 4D, 3 classes | Selected with `--data`, default `blobs` |
-| MNIST (classification) | `ffn.py`, `cnn.py`, `vit.py` | 60000 / 10000, 1x28x28, 10 classes | `ToTensor` only, so pixels stay in `[0, 1]` |
-| MNIST (generation) | VAEs | 60000, 1x28x28 | Pixels in `[0, 1]` to match the sigmoid decoder |
-| MNIST (generation) | GANs, DDPM, SMLD, FM | 60000, 1x28x28 | Normalized to `[-1, 1]` to match the tanh output and the samplers |
-| 1D Gaussian mixture | `ddpm_1d.py`, `smld_1d.py`, `fm_1d.py` | 2000 samples by default | Two components, 30% at `-5` and 70% at `+5`, with analytic density and score for reference curves |
+| `ffn_binary.py` | `load_binary_classification_data` | 2D binary datasets, selected with `--data` | `jigsaw` |
+| `ffn_multiclass.py` | `load_multiclass_classification_data` | Multiclass datasets, selected with `--data` | `blobs` |
+| `ffn.py`, `cnn.py`, `vit.py` | `load_mnist_classification_data` | MNIST, pixels in `[0, 1]` | - |
+| `vae_ffn.py`, `vae_cnn.py` | `load_mnist_generation_data` | MNIST, pixels in `[0, 1]` to match the sigmoid decoder | - |
+| `gan_ffn.py`, `gan_cnn.py`, `ddpm_unet.py`, `smld_unet.py`, `fm_unet.py` | `load_mnist_generation_data` with `tanh_range=True` | MNIST, pixels in `[-1, 1]` to match the tanh output and the samplers | - |
+| `ddpm_1d.py`, `smld_1d.py`, `fm_1d.py` | `load_gaussian_mixture_1d_data` | 1D Gaussian mixture (30% at `-5`, 70% at `+5`), with analytic density and score for reference curves | 2000 samples |
 
 The 2D datasets are the only ones whose model can be drawn as a decision boundary, so `ffn_binary.py` and `ffn_multiclass.py` skip that plot for `classification` and `iris`.
 
@@ -172,38 +167,36 @@ From-scratch feedforward networks:
 
 | Option | Script | Default | Meaning |
 | --- | --- | --- | --- |
-| `--data` | both | `jigsaw` / `blobs` | Dataset name |
+| `--data` | both | `jigsaw` (`ffn_binary.py`), `blobs` (`ffn_multiclass.py`) | Dataset name |
 | `--hidden-size` | `ffn_binary.py` | `4` | Units in the single hidden layer |
 | `--hidden1-size`, `--hidden2-size` | `ffn_multiclass.py` | `6`, `6` | Units in the two hidden layers |
 | `--num-epochs` | both | `10000` | Number of training epochs |
-| `--learning-rate` | both | `0.1` / `0.01` | Step size for gradient descent |
+| `--learning-rate` | both | `0.1` (`ffn_binary.py`), `0.01` (`ffn_multiclass.py`) | Step size for gradient descent |
 | `--batch-size` | both | `None` | Mini-batch size for SGD; full-batch GD when omitted |
 
 MNIST generative models:
 
 | Option | Scripts | Default | Meaning |
 | --- | --- | --- | --- |
-| `--latent-size` | VAEs, GANs | `16` / `64` | Size of the latent vector |
-| `--num-epochs` | VAEs, GANs / UNet models | `50` / `30` | Number of training epochs |
-| `--learning-rate` | all | `0.001` (VAE), `0.0002` (GAN), `0.0001` (UNet models) | Learning rate for Adam |
+| `--latent-size` | VAEs, GANs | `16` (VAEs), `64` (GANs) | Size of the latent vector |
+| `--num-epochs` | VAEs, GANs, UNet models | `50` (VAEs, GANs), `30` (UNet models) | Number of training epochs |
+| `--learning-rate` | all | `0.001` (VAEs), `0.0002` (GANs), `0.0001` (UNet models) | Learning rate for Adam |
 | `--batch-size` | all | `128` | Batch size for training |
 | `--base-channels` | UNet models | `64` | Channels at the full resolution of the UNet |
 
 Diffusion and flow matching specifics:
 
-| Option | Scripts | Default (UNet / 1D) | Meaning |
-| --- | --- | --- | --- |
-| `--num-timesteps` | DDPM | `1000` / `1000` | Number of diffusion timesteps |
-| `--beta-start`, `--beta-end` | DDPM | `0.0001`, `0.02` | Endpoints of the linear beta schedule |
-| `--num-noise-levels` | SMLD | `200` / `10` | Levels in the geometric sigma schedule |
-| `--sigma-min`, `--sigma-max` | SMLD | `0.005`, `15.0` / `0.01`, `10.0` | Endpoints of the sigma schedule |
-| `--num-langevin-steps` | SMLD | `1` / `10` | Langevin corrector steps per noise level |
-| `--target-snr` | SMLD | `0.16` / `0.10` | Target signal-to-noise ratio of the corrector step |
-| `--num-steps` | FM | `50` / `100` | ODE integration steps for sampling |
-| `--solver` | FM | `heun` / `rk4` | `euler` \| `midpoint` \| `heun` \| `rk4` |
-| `--sigma-min` | FM | `0.0` | Minimum noise level of the OT conditional path |
-
-A row with a single default applies to both the UNet and the 1D scripts.
+| Option | Scripts | UNet default | 1D default | Meaning |
+| --- | --- | --- | --- | --- |
+| `--num-timesteps` | DDPM | `1000` | `1000` | Number of diffusion timesteps |
+| `--beta-start`, `--beta-end` | DDPM | `0.0001`, `0.02` | `0.0001`, `0.02` | Endpoints of the linear beta schedule |
+| `--num-noise-levels` | SMLD | `200` | `10` | Levels in the geometric sigma schedule |
+| `--sigma-min`, `--sigma-max` | SMLD | `0.005`, `15.0` | `0.01`, `10.0` | Endpoints of the sigma schedule |
+| `--num-langevin-steps` | SMLD | `1` | `10` | Langevin corrector steps per noise level |
+| `--target-snr` | SMLD | `0.16` | `0.10` | Target signal-to-noise ratio of the corrector step |
+| `--num-steps` | FM | `50` | `100` | ODE integration steps for sampling |
+| `--solver` | FM | `heun` | `rk4` | `euler` \| `midpoint` \| `heun` \| `rk4` |
+| `--sigma-min` | FM | `0.0` | `0.0` | Minimum noise level of the OT conditional path |
 
 1D toy scripts additionally take `--num-samples` (`2000`), `--num-iterations` (`2000` for DDPM, `5000` for SMLD and FM), `--batch-size` (`256`), `--hidden-size` (`128`) and `--num-gen-samples` (`3000`); they train on freshly drawn mini-batches rather than full passes over the dataset.
 
@@ -223,22 +216,26 @@ python fm_1d.py --solver euler --num-steps 20
 
 Figures are written to two directories, both created automatically, with re-runs overwriting previous files:
 
-* `./plot` - analysis plots: training curves, decision boundaries, misclassified images, VAE latent spaces, 1D trajectories, learned score and velocity fields
-* `./gen` - generative results: per-epoch sample grids, generation-progress grids, 1D generated-sample histograms
+- `./plot` - analysis plots: training curves, decision boundaries, misclassified images, VAE latent spaces, 1D trajectories, learned score and velocity fields
+- `./gen` - generative results: per-epoch sample grids, generation-progress grids, 1D generated-sample histograms
 
 File names are derived from the model name, for example `./plot/cnn_training_curve.png`, `./plot/vit_misclassified.png`, `./plot/vae_ffn_latent_space.png`, `./gen/gan_cnn_epoch_50.png`, `./gen/ddpm_unet_prog.png`, `./gen/fm_1d_gen.png`.
 
-* **Training curve** - loss against training iterations, on a log y axis by default. The GAN scripts draw the discriminator and generator losses in one figure.
-* **Misclassified images** - the first 20 misclassified test digits with their true and predicted labels.
-* **Latent space** - VAE latent means of up to 5000 training images projected to 2D by t-SNE and coloured by digit.
-* **Sample grid** - a 6x6 grid decoded from the same fixed latent vectors (VAE, GAN) or freshly sampled noise (DDPM, SMLD, FM) after every epoch, so the saved files show how training progresses. Only the last epoch is displayed on screen.
-* **Generation progress** - one row per sample, columns being snapshots from noise to the final image, with the columns concentrated near the end of the trajectory where structure appears.
-* **1D plots** - forward and reverse (or conditional-path, generative-ODE and inverse-ODE) trajectories, the learned score against the analytic score, the velocity field over `(x, t)`, and the generated distribution overlaid on the true density.
+- **Training curve** - loss against training iterations, on a log y axis by default. The GAN scripts draw the discriminator and generator losses in one figure.
+- **Misclassified images** - the first 20 misclassified test digits with their true and predicted labels.
+- **Latent space** - VAE latent means of up to 5000 training images projected to 2D by t-SNE and coloured by digit.
+- **Sample grid** - a 6x6 grid decoded from the same fixed latent vectors (VAE, GAN) or freshly sampled noise (DDPM, SMLD, FM) after every epoch, so the saved files show how training progresses. Only the last epoch is displayed on screen.
+- **Generation progress** - one row per sample, columns being snapshots from noise to the final image, with the columns concentrated near the end of the trajectory where structure appears.
+- **1D plots** - forward and reverse (or conditional-path, generative-ODE and inverse-ODE) trajectories, the learned score against the analytic score, the velocity field over `(x, t)`, and the generated distribution overlaid on the true density.
 
 On a headless machine, set a non-interactive backend so that `plt.show()` does not block:
 
 ```bash
+# Linux / macOS
 MPLBACKEND=Agg python ddpm_unet.py --num-epochs 1
+
+# Windows (PowerShell)
+$env:MPLBACKEND = "Agg"; python ddpm_unet.py --num-epochs 1
 ```
 
 ---
@@ -249,4 +246,4 @@ The classifiers print the accuracy on both the training and the test set and the
 
 The generative models have no single accuracy number, and are judged from the training curves, the saved sample grids, the generation-progress grids and, for the 1D models, the overlap between the generated histogram and the analytic density.
 
-Every script fixes its seeds after the data is loaded (`MODEL_SEED = 36` for the classifiers, VAEs and GANs, `MODEL_SEED = 28` for the diffusion and flow matching models). The data itself is generated and split with fixed seeds inside the `Data` package, so repeated runs on the same device are reproducible.
+Every script fixes `MODEL_SEED = 64` after the data is loaded. The data itself is generated and split with `DATA_SEED = 32` inside the `Data` package, so repeated runs on the same device are reproducible.

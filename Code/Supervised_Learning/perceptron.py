@@ -10,6 +10,8 @@ from Data import data_loaders as dl
 import utility_functions as uf
 import plot_functions as pf
 
+# Random seed for reproducibility
+MODEL_SEED = 64
 # Default number of epochs for training
 DEFAULT_NUM_EPOCHS = 100
 # Default learning rate for online updates
@@ -289,7 +291,6 @@ if __name__ == "__main__":
     )
 
     # Random seed for reproducibility, after data creation
-    MODEL_SEED = 36
     np.random.seed(MODEL_SEED)
 
     # Initialize the Perceptron model

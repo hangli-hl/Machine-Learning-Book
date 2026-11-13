@@ -10,6 +10,8 @@ from sklearn.metrics import adjusted_rand_score
 from Data import data_loaders as dl
 import plot_functions as pf
 
+# Random seed for reproducibility
+MODEL_SEED = 64
 # Default number of iterations for K-Means
 DEFAULT_NUM_ITERATIONS = 100
 # Default convergence threshold for K-Means
@@ -390,7 +392,6 @@ if __name__ == "__main__":
     print(f"Number of clusters for K-Means: {num_clusters}")
 
     # Random seed for reproducibility, after data creation
-    MODEL_SEED = 32
     np.random.seed(MODEL_SEED)
 
     # Initialize the K-Means model

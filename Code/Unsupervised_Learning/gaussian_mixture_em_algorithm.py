@@ -12,6 +12,8 @@ from sklearn.metrics import adjusted_rand_score
 from Data import data_loaders as dl
 import plot_functions as pf
 
+# Random seed for reproducibility
+MODEL_SEED = 64
 # Default number of iterations for the EM algorithm
 DEFAULT_NUM_ITERATIONS = 1000
 # Default threshold for the per-sample log-likelihood change
@@ -405,7 +407,6 @@ if __name__ == "__main__":
     print(f"Number of components for GMM: {num_components}")
 
     # Random seed for reproducibility, after data creation
-    MODEL_SEED = 32
     np.random.seed(MODEL_SEED)
 
     # Initialize the Gaussian mixture model

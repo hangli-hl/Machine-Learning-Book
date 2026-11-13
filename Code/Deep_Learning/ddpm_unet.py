@@ -17,7 +17,7 @@ import unet
 # Name used in plot titles and file names
 MODEL_NAME = "DDPM-UNet"
 # Random seed for reproducibility
-MODEL_SEED = 28
+MODEL_SEED = 64
 # Default number of training epochs
 DEFAULT_NUM_EPOCHS = 30
 # Default learning rate for Adam optimizer

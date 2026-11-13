@@ -10,6 +10,8 @@ from Data import data_loaders as dl
 import utility_functions as uf
 import plot_functions as pf
 
+# Random seed for reproducibility
+MODEL_SEED = 64
 # Default regularization coefficient
 DEFAULT_REGULARIZATION = 0.01
 # Default number of epochs for training
@@ -309,7 +311,6 @@ if __name__ == "__main__":
     )
 
     # Random seed for reproducibility, after data creation
-    MODEL_SEED = 36
     np.random.seed(MODEL_SEED)
 
     # Initialize the linear Support Vector Machine model

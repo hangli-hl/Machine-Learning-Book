@@ -11,7 +11,7 @@ import utility_functions as uf
 import plot_functions as pf
 
 # Random seed for model initialization and training shuffling
-MODEL_SEED = 36
+MODEL_SEED = 64
 # Default number of hidden units
 DEFAULT_HIDDEN_SIZE = 4
 # Default number of training epochs

@@ -17,7 +17,7 @@ import unet
 # Name used in plot titles and file names
 MODEL_NAME = "FM-1D"
 # Random seed for reproducibility
-MODEL_SEED = 28
+MODEL_SEED = 64
 # Supported ODE solvers: first order (euler), second order (midpoint, heun),
 # fourth order (rk4)
 SOLVERS = ("euler", "midpoint", "heun", "rk4")

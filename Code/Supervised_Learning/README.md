@@ -50,7 +50,7 @@ Each algorithm is implemented from scratch with NumPy and SciPy and exposed as a
 - `utility_functions.py` - Shared utilities: evaluation measures (accuracy, MSE), activation functions (sigmoid, softmax, hinge), loss functions (logistic, cross-entropy) and one-hot encoding.
 - `plot_functions.py` - Shared plotting: training curves and 2D model visualizations for binary classification (predicted regions, decision boundaries, margins, support vectors, Gaussian densities), multiclass classification and regression surfaces.
 
-The last two files are libraries imported by the algorithm scripts; all the others are entry points. `adaboost.py` additionally imports `ClassificationTree`, and the three gradient boosting scripts import `RegressionTree`, as their base learners.
+The files under Shared Modules are libraries imported by the algorithm scripts; all the others are entry points. `adaboost.py` additionally imports `ClassificationTree`, and the three gradient boosting scripts import `RegressionTree`, as their base learners.
 
 Datasets are not created in this directory: they come from `Data/data_loaders.py` (see [Datasets](#datasets)).
 
@@ -64,20 +64,17 @@ Python 3.11+ with `numpy`, `scipy`, `scikit-learn` and `matplotlib`.
 pip install numpy scipy scikit-learn matplotlib
 ```
 
-### Install the repository in editable mode (once per environment)
+PyTorch is not required: the `Data` package imports it only inside the MNIST and 1D Gaussian mixture loaders, which these scripts do not use.
 
-All scripts import their data from the `Data` package at the repository root, which lies outside this directory. Install the repository once per environment, from the repository root (where `pyproject.toml` is located):
+### Install the repository (once per environment)
+
+All scripts import their data from the `Data` package at the repository root. From the repository root (where `pyproject.toml` is located), run:
 
 ```bash
 python -m pip install -e .
 ```
 
-What this does:
-
-- `-e` (editable) registers the repository in the current Python environment as a link to the source tree instead of copying files. Therefore `from Data.data_loaders import ...` works from any working directory.
-- Edits to the source files take effect immediately, with no reinstall.
-- It is needed only once per environment (virtualenv, conda env, ...); repeat it when you create a new one.
-- Without it, the scripts fail with `ModuleNotFoundError: No module named 'Data'`.
+Without it, the scripts fail with `ModuleNotFoundError: No module named 'Data'`. See [Getting Started](../README.md#getting-started) in the root README for details.
 
 ### Running the scripts
 
@@ -127,34 +124,18 @@ python kernel_svm.py -h
 
 ## Datasets
 
-Chosen with `--data`. Data are loaded through `Data/data_loaders.py`. All datasets ship ground-truth labels or values and a fixed train/test split, and all features are standardized with the training mean and standard deviation.
+Chosen with `--data`. Data are loaded through `Data/data_loaders.py`; the available dataset names, sizes and conventions of each task are listed in [Data/README.md](../Data/README.md). All datasets ship ground-truth labels or values and a fixed train/test split, and all features are standardized with the training mean and standard deviation.
 
-The default dataset is `gaussians` for the binary classifiers, except `adaboost.py`, `gradient_boosting_binary.py` and `kernel_svm.py`, which default to `jigsaw`.
+Default dataset of each script:
 
-Binary classification (`load_binary_classification_data`):
-
-| Name | Size | Notes |
-| --- | --- | --- |
-| `gaussians` | 200 / 20, 2D | Two Gaussians with different covariances; the default for all binary classifiers except `adaboost.py`, `gradient_boosting_binary.py` and `kernel_svm.py` |
-| `jigsaw` | 200 / 20, 2D | XOR-like, four Gaussian blobs in two classes, not linearly separable; the default for `adaboost.py`, `gradient_boosting_binary.py` and `kernel_svm.py` |
-| `circle` | 200 / 20, 2D | Inner disc against an outer ring, not linearly separable |
-| `moons` | 200 / 20, 2D | Two interleaving half moons with noise |
-| `iris` | 120 / 30, 4D | Real data, class 2 against classes 0 and 1 |
-
-Multiclass classification (`load_multiclass_classification_data`):
-
-| Name | Size | Classes | Notes |
+| Task | Loader | Scripts | Default |
 | --- | --- | --- | --- |
-| `classification` | 800 / 200, 20D | 4 | Synthetic, 15 informative and 5 redundant features |
-| `blobs` | 240 / 60, 2D | 3 | Three isotropic blobs; the default for the multiclass scripts |
-| `iris` | 120 / 30, 4D | 3 | Real data, stratified split, two classes overlap |
+| Binary classification | `load_binary_classification_data` | `adaboost.py`, `gradient_boosting_binary.py`, `kernel_svm.py` | `jigsaw` |
+| Binary classification | `load_binary_classification_data` | all other binary classifiers | `gaussians` |
+| Multiclass classification | `load_multiclass_classification_data` | the multiclass scripts | `blobs` |
+| Regression | `load_regression_data` | the regression scripts | `plane` |
 
-Regression (`load_regression_data`):
-
-| Name | Size | Notes |
-| --- | --- | --- |
-| `plane` | 200 / 20, 2D | `y = 5*x1 - 3*x2 + 2` with Gaussian noise; the default for the regression scripts |
-| `diabetes` | 353 / 89, 10D | Real data, values standardized |
+`jigsaw` is not linearly separable, which is why the scripts that can model non-linear boundaries default to it.
 
 Label conventions differ by algorithm: `perceptron.py`, `linear_svm.py`, `kernel_svm.py` and `adaboost.py` request signed labels in `{-1, 1}` (`signed_label=True` in `load_binary_classification_data`), while the remaining classifiers use `{0, 1}` or `{0, ..., k-1}`. The scripts set this flag themselves, so no manual conversion is needed.
 
@@ -170,8 +151,8 @@ Iterative methods:
 | --- | --- | --- | --- |
 | `--num-iterations` | linear regression, logistic regressions | `10000` (GD) / `100` (BFGS) | Iteration budget |
 | `--num-epochs` | perceptron, linear SVM | `100` | Number of passes over the training data |
-| `--learning-rate` | linear regression, perceptron, logistic regressions, linear SVM | `0.1` / `0.1` / `0.01` / `0.01` | Step size for gradient descent |
-| `--convergence-threshold` | the same scripts | `None` | Stop when the loss change (or the training error rate) drops below this; run the full budget when omitted |
+| `--learning-rate` | linear regression, perceptron, logistic regressions, linear SVM | `0.1` (linear regression, perceptron), `0.01` (logistic regressions, linear SVM) | Step size for gradient descent |
+| `--convergence-threshold` | linear regression, perceptron, logistic regressions, linear SVM, AdaBoost, gradient boosting | `None` | Stop when the loss change drops below this value (the training error rate for the perceptron and AdaBoost); run the full budget when omitted |
 | `--algorithm` | linear regression, logistic regressions | `gd` | `gd` \| `ne` for linear regression, `gd` \| `bfgs` for the logistic regressions |
 
 Instance-based, generative and kernel methods:
@@ -190,11 +171,10 @@ Tree and ensemble methods:
 
 | Option | Scripts | Default | Meaning |
 | --- | --- | --- | --- |
-| `--max-tree-depth` | trees / ensembles | `5` / `2` | Maximum depth of a tree; `1` gives a stump |
-| `--min-sample-split` | trees and ensembles | `5` | Minimum instances required to split a node |
+| `--max-tree-depth` | decision trees, AdaBoost and gradient boosting | `5` (decision trees), `2` (ensembles) | Maximum depth of a tree; `1` gives a stump |
+| `--min-sample-split` | decision trees, AdaBoost and gradient boosting | `5` | Minimum instances required to split a node |
 | `--num-learners` | AdaBoost, gradient boosting | `100` (`50` for the multiclass classifier) | Base learners in the ensemble, per class for the multiclass classifier |
 | `--shrinkage` | gradient boosting | `0.1` | Shrinkage coefficient in `(0, 1]` applied to every learner |
-| `--convergence-threshold` | AdaBoost, gradient boosting | `None` | Stop when the training error rate (AdaBoost) or the loss change (gradient boosting) drops below this |
 
 Examples:
 
@@ -221,14 +201,18 @@ All figures are saved to `./plot` (created automatically, re-runs overwrite prev
 
 Three visualization styles are shared by all models:
 
-* **Binary classification** - predicted regions as filled contours, drawn either as two label regions or as four probability bins with the `p = 0.5` boundary, plus positive and negative instances. Individual models overlay their own details: the separating hyperplane (perceptron), hyperplane and margins (linear SVM), the `f(x) = 0` and `f(x) = ±1` contours with circled support vectors (kernel SVM), and the learned per-class Gaussian densities (naive Bayes).
-* **Multiclass classification** - predicted class regions as a filled mesh sharing one discrete colour scale with the instances.
-* **Regression** - the prediction surface as filled contours with contour lines, optionally labelled with their values, and the instances grayscaled by their true values.
+- **Binary classification** - predicted regions as filled contours, drawn either as two label regions or as four probability bins with the `p = 0.5` boundary, plus positive and negative instances. Individual models overlay their own details: the separating hyperplane (perceptron), hyperplane and margins (linear SVM), the `f(x) = 0` and `f(x) = ±1` contours with circled support vectors (kernel SVM), and the learned per-class Gaussian densities (naive Bayes).
+- **Multiclass classification** - predicted class regions as a filled mesh sharing one discrete colour scale with the instances.
+- **Regression** - the prediction surface as filled contours with contour lines, optionally labelled with their values, and the instances grayscaled by their true values.
 
 On a headless machine, set a non-interactive backend so that `plt.show()` does not block:
 
 ```bash
+# Linux / macOS
 MPLBACKEND=Agg python classification_tree.py
+
+# Windows (PowerShell)
+$env:MPLBACKEND = "Agg"; python classification_tree.py
 ```
 
 ---
@@ -237,7 +221,7 @@ MPLBACKEND=Agg python classification_tree.py
 
 Each script prints its evaluation measure on both the training and the test set, computed in `utility_functions`:
 
-* **Classification** - accuracy from `calculate_accuracy`, the fraction of correctly predicted labels
-* **Regression** - mean squared error from `calculate_mse`
+- **Classification** - accuracy from `calculate_accuracy`, the fraction of correctly predicted labels
+- **Regression** - mean squared error from `calculate_mse`
 
-The scripts with stochastic training (`perceptron.py`, `linear_svm.py`, `adaboost.py`) fix `MODEL_SEED = 36` after the data is loaded. The train/test splits are fixed by random seeds inside the `Data` package, so repeated runs are reproducible. The remaining models are deterministic given the data.
+The scripts with stochastic training (`perceptron.py`, `linear_svm.py`, `adaboost.py`) fix `MODEL_SEED = 64` after the data is loaded. The train/test splits are fixed by `DATA_SEED = 32` inside the `Data` package, so repeated runs are reproducible. The remaining models are deterministic given the data.

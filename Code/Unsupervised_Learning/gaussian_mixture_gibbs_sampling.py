@@ -12,6 +12,8 @@ from sklearn.metrics import adjusted_rand_score
 from Data import data_loaders as dl
 import plot_functions as pf
 
+# Random seed for reproducibility
+MODEL_SEED = 64
 # Default number of iterations for the Gibbs sampler
 DEFAULT_NUM_ITERATIONS = 5000
 # Default number of initial iterations to discard (burn-in)
@@ -534,7 +536,6 @@ if __name__ == "__main__":
     print(f"Number of components for GMM: {num_components}")
 
     # Random seed for reproducibility, after data creation
-    MODEL_SEED = 64
     np.random.seed(MODEL_SEED)
 
     # Initialize the Gaussian mixture model

@@ -17,7 +17,7 @@ import unet
 # Name used in plot titles and file names
 MODEL_NAME = "SMLD-UNet"
 # Random seed for reproducibility
-MODEL_SEED = 28
+MODEL_SEED = 64
 # A small constant to avoid division by zero
 EPS = 1e-12
 # Default number of training epochs

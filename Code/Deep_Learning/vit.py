@@ -16,7 +16,7 @@ import plot_functions as pf
 # Name used in plot titles and file names
 MODEL_NAME = "ViT"
 # Random seed for model initialization and training shuffling
-MODEL_SEED = 36
+MODEL_SEED = 64
 # Number of misclassified images to show
 NUM_MISCLASSIFIED = 20
 # Default number of training epochs

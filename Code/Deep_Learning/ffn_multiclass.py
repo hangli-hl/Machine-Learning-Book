@@ -11,7 +11,7 @@ import utility_functions as uf
 import plot_functions as pf
 
 # Random seed for model initialization and training shuffling
-MODEL_SEED = 36
+MODEL_SEED = 64
 # Default number of nodes in the first hidden layer
 DEFAULT_HIDDEN1_SIZE = 6
 # Default number of nodes in the second hidden layer
