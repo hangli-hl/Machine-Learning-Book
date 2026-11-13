@@ -26,7 +26,7 @@ DEFAULT_LEARNING_RATE = 0.0002
 # Default batch size for training
 DEFAULT_BATCH_SIZE = 128
 # Number of images to generate for evaluation
-NUM_GENERATED_IMAGES = 36
+NUM_GEN_IMAGES = 36
 
 
 ##############################################################################
@@ -217,7 +217,7 @@ def train_gan(
     Args:
         model: GAN model containing generator and discriminator
         training_loader: DataLoader for training data
-        fixed_noises: latent noise vectors, shape (NUM_GENERATED_IMAGES, latent_size)
+        fixed_noises: latent noise vectors, shape (NUM_GEN_IMAGES, latent_size)
         num_epochs: number of training epochs, a positive integer
         criterion: loss function (nn.BCELoss)
         optimizer_generator: optimizer for generator (Adam)
@@ -252,8 +252,8 @@ def train_gan(
 
             # Calculate discriminator loss with generated images
             noises = torch.randn(images.size(0), latent_size).to(device)
-            generated_images = model.generator(noises)
-            gen_probabilities = model.discriminator(generated_images.detach())
+            gen_images = model.generator(noises)
+            gen_probabilities = model.discriminator(gen_images.detach())
             gen_loss = criterion(gen_probabilities, fake_labels)
 
             # Total discriminator loss
@@ -268,8 +268,8 @@ def train_gan(
 
             # Calculate generator loss with generated images
             noises = torch.randn(images.size(0), latent_size).to(device)
-            generated_images = model.generator(noises)
-            gen_probabilities = model.discriminator(generated_images)
+            gen_images = model.generator(noises)
+            gen_probabilities = model.discriminator(gen_images)
             generator_loss = criterion(gen_probabilities, real_labels)
 
             # Backward pass and optimization
@@ -305,7 +305,7 @@ def generate_samples_gan(model, epoch, fixed_noises, num_epochs):
         model: trained GAN model
         epoch: current epoch, a non-negative integer
         fixed_noises: latent noise vectors, shape (num_images, latent_size),
-            already on the same device as the model, num_images = NUM_GENERATED_IMAGES
+            already on the same device as the model, num_images = NUM_GEN_IMAGES
         num_epochs: total number of epochs, a positive integer
     """
     # Set the model to evaluation mode
@@ -313,7 +313,7 @@ def generate_samples_gan(model, epoch, fixed_noises, num_epochs):
 
     with torch.no_grad():
         # Images are in the tanh range [-1, 1], which will be re-scaled
-        generated_images = model.generator(fixed_noises)
+        gen_images = model.generator(fixed_noises)
 
     # Set the model back to training mode
     model.train()
@@ -322,7 +322,7 @@ def generate_samples_gan(model, epoch, fixed_noises, num_epochs):
     current_epoch = epoch + 1
     if current_epoch % 5 == 0 or current_epoch == num_epochs:
         pf.plot_generated_images(
-            generated_images,
+            gen_images,
             title=f"{MODEL_NAME}, Epoch {current_epoch}",
             file_name=pf.default_file_name(MODEL_NAME, f"epoch_{current_epoch}"),
             value_range=(-1.0, 1.0),
@@ -410,7 +410,7 @@ if __name__ == "__main__":
     # Generate latent noise vectors for monitoring training progress
     noise_generator = torch.Generator().manual_seed(MODEL_SEED)
     fixed_noises = torch.randn(
-        NUM_GENERATED_IMAGES, latent_size, generator=noise_generator
+        NUM_GEN_IMAGES, latent_size, generator=noise_generator
     ).to(device)
 
     # Train model

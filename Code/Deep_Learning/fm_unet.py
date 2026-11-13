@@ -35,7 +35,7 @@ DEFAULT_SOLVER = "heun"
 # Default minimum noise level of the OT conditional path
 DEFAULT_SIGMA_MIN = 0.0
 # Number of images to generate for evaluation
-NUM_GENERATED_IMAGES = 36
+NUM_GEN_IMAGES = 36
 
 
 ##############################################################################
@@ -328,14 +328,16 @@ def generate_samples_fm(model, flow_matching, num_gen_images, epoch, num_epochs)
     # Set the model back to training mode
     model.train()
 
-    # Only the generated images from the last epoch are displayed
-    pf.plot_generated_images(
-        gen_images,
-        title=f"{MODEL_NAME}, Epoch {epoch + 1}",
-        file_name=pf.default_file_name(MODEL_NAME, f"epoch_{epoch + 1}"),
-        value_range=(-1.0, 1.0),
-        show=(epoch + 1 == num_epochs),
-    )
+    # Save generated images every 5 epochs; display only for the last epoch
+    current_epoch = epoch + 1
+    if current_epoch % 5 == 0 or current_epoch == num_epochs:
+        pf.plot_generated_images(
+            gen_images,
+            title=f"{MODEL_NAME}, Epoch {current_epoch}",
+            file_name=pf.default_file_name(MODEL_NAME, f"epoch_{current_epoch}"),
+            value_range=(-1.0, 1.0),
+            show=(current_epoch == num_epochs),
+        )
 
 
 ##############################################################################
@@ -445,7 +447,7 @@ if __name__ == "__main__":
         f"base channels = {base_channels}, sigma min = {sigma_min}, "
         f"solver = {solver}, steps = {num_steps}"
     )
-    num_gen_images = NUM_GENERATED_IMAGES  # Number of images to generate for evaluation
+    num_gen_images = NUM_GEN_IMAGES  # Number of images to generate for evaluation
     loss_log = train_fm(
         model,
         training_loader,

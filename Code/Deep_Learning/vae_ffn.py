@@ -25,7 +25,7 @@ DEFAULT_LEARNING_RATE = 0.001
 # Default batch size for training
 DEFAULT_BATCH_SIZE = 128
 # Number of images to generate for evaluation
-NUM_GENERATED_IMAGES = 36
+NUM_GEN_IMAGES = 36
 
 
 ##############################################################################
@@ -169,10 +169,10 @@ class Decoder(nn.Module):
             latent_representations: latent vectors of shape (batch_size, latent_size)
 
         Returns:
-            generated_images: generated images, shape (batch_size, image_channels, image_size, image_size)
+            gen_images: generated images, shape (batch_size, image_channels, image_size, image_size)
         """
-        generated_images = self.ffn(latent_representations)
-        return generated_images
+        gen_images = self.ffn(latent_representations)
+        return gen_images
 
 
 ##############################################################################
@@ -216,7 +216,7 @@ class VAE(nn.Module):
             images: input images of shape (batch_size, image_channels, image_size, image_size)
 
         Returns:
-            generated_images: generated images, same shape as input
+            gen_images: generated images, same shape as input
             mu: mean of latent distribution, shape (batch_size, latent_size)
             log_var: log variance of latent distribution, shape (batch_size, latent_size)
         """
@@ -227,9 +227,9 @@ class VAE(nn.Module):
         latent_representations = self.reparameterize(mu, log_var)
 
         # Decode latent samples to generated images
-        generated_images = self.decoder(latent_representations)
+        gen_images = self.decoder(latent_representations)
 
-        return generated_images, mu, log_var
+        return gen_images, mu, log_var
 
     def reparameterize(self, mu, log_var):
         """
@@ -267,7 +267,7 @@ def train_vae(
     Args:
         model: VAE model
         training_loader: DataLoader for training data
-        fixed_latents: latent vectors used for image generation, shape (NUM_GENERATED_IMAGES, latent_size)
+        fixed_latents: latent vectors used for image generation, shape (NUM_GEN_IMAGES, latent_size)
         num_epochs: number of training epochs, a positive integer
         criterion: loss function (nn.BCELoss)
         optimizer: optimizer (Adam)
@@ -288,8 +288,8 @@ def train_vae(
             images = images.to(device)
 
             # Forward pass
-            generated_images, mu, log_var = model(images)
-            loss = compute_vae_loss(images, generated_images, mu, log_var, criterion)
+            gen_images, mu, log_var = model(images)
+            loss = compute_vae_loss(images, gen_images, mu, log_var, criterion)
 
             # Backward pass and optimization
             optimizer.zero_grad()
@@ -312,13 +312,13 @@ def train_vae(
     return loss_log
 
 
-def compute_vae_loss(images, generated_images, mu, log_var, criterion):
+def compute_vae_loss(images, gen_images, mu, log_var, criterion):
     """
     Compute the VAE loss: reconstruction loss + KL divergence.
 
     Args:
         images: original images, shape (batch_size, image_channels, image_size, image_size)
-        generated_images: generated images, shape (batch_size, image_channels, image_size, image_size)
+        gen_images: generated images, shape (batch_size, image_channels, image_size, image_size)
         mu: mean of latent distribution, shape (batch_size, latent_size)
         log_var: log variance of latent distribution, shape (batch_size, latent_size)
         criterion: loss function (nn.BCELoss)
@@ -328,7 +328,7 @@ def compute_vae_loss(images, generated_images, mu, log_var, criterion):
     """
     # Reconstruction loss (binary cross-entropy)
     # Input images are normalized to [0, 1]
-    reconstruction_loss = criterion(generated_images, images)
+    reconstruction_loss = criterion(gen_images, images)
 
     # KL divergence loss
     kl_divergence = -0.5 * torch.sum(1 + log_var - mu.pow(2) - log_var.exp())
@@ -347,7 +347,7 @@ def generate_samples_vae(model, epoch, fixed_latents, num_epochs):
         model: trained VAE model
         epoch: current epoch, a non-negative integer
         fixed_latents: latent vectors, shape (num_images, latent_size),
-            already on the same device as the model, num_images = NUM_GENERATED_IMAGES
+            already on the same device as the model, num_images = NUM_GEN_IMAGES
         num_epochs: total number of epochs, a positive integer
     """
     # Set the model to evaluation mode
@@ -355,7 +355,7 @@ def generate_samples_vae(model, epoch, fixed_latents, num_epochs):
 
     with torch.no_grad():
         # Images are in the sigmoid range [0, 1]
-        generated_images = model.decoder(fixed_latents)
+        gen_images = model.decoder(fixed_latents)
 
     # Set the model back to training mode
     model.train()
@@ -364,7 +364,7 @@ def generate_samples_vae(model, epoch, fixed_latents, num_epochs):
     current_epoch = epoch + 1
     if current_epoch % 5 == 0 or current_epoch == num_epochs:
         pf.plot_generated_images(
-            generated_images,
+            gen_images,
             title=f"{MODEL_NAME}, Epoch {current_epoch}",
             file_name=pf.default_file_name(MODEL_NAME, f"epoch_{current_epoch}"),
             value_range=(0.0, 1.0),
@@ -487,7 +487,7 @@ if __name__ == "__main__":
     # Generate latent vectors for monitoring training progress
     noise_generator = torch.Generator().manual_seed(MODEL_SEED)
     fixed_latents = torch.randn(
-        NUM_GENERATED_IMAGES, latent_size, generator=noise_generator
+        NUM_GEN_IMAGES, latent_size, generator=noise_generator
     ).to(device)
 
     # Train model

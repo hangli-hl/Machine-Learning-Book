@@ -8,6 +8,7 @@ import torch
 import torch.nn as nn
 import torch.optim as optim
 import numpy as np
+import math
 
 from Data import data_loaders as dl
 import utility_functions as uf
@@ -39,7 +40,7 @@ DEFAULT_NUM_LANGEVIN_STEPS = 1
 # Default target signal-to-noise ratio for the Langevin corrector step size
 DEFAULT_TARGET_SNR = 0.16
 # Number of images to generate for evaluation
-NUM_GENERATED_IMAGES = 36
+NUM_GEN_IMAGES = 36
 
 
 ##############################################################################
@@ -401,14 +402,16 @@ def generate_samples_smld(
     # Set the model back to training mode
     model.train()
 
-    # Only the images from the last epoch are displayed
-    pf.plot_generated_images(
-        gen_images,
-        title=f"{MODEL_NAME}, Epoch {epoch + 1}",
-        file_name=pf.default_file_name(MODEL_NAME, f"epoch_{epoch + 1}"),
-        value_range=(-1.0, 1.0),
-        show=(epoch + 1 == num_epochs),
-    )
+    # Save generated images every 5 epochs; display only for the last epoch
+    current_epoch = epoch + 1
+    if current_epoch % 5 == 0 or current_epoch == num_epochs:
+        pf.plot_generated_images(
+            gen_images,
+            title=f"{MODEL_NAME}, Epoch {current_epoch}",
+            file_name=pf.default_file_name(MODEL_NAME, f"epoch_{current_epoch}"),
+            value_range=(-1.0, 1.0),
+            show=(current_epoch == num_epochs),
+        )
 
 
 ##############################################################################
@@ -533,7 +536,7 @@ if __name__ == "__main__":
         f"noise levels = {num_noise_levels}, base channels = {base_channels}, "
         f"Langevin steps per level = {num_langevin_steps}, target SNR = {target_snr}"
     )
-    num_gen_images = 36  # Number of images to generate for evaluation
+    num_gen_images = NUM_GEN_IMAGES  # Number of images to generate for evaluation
     loss_log = train_smld(
         model,
         training_loader,
