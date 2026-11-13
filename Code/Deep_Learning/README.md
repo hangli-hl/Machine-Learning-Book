@@ -6,9 +6,9 @@ The two feedforward networks `ffn_binary.py` and `ffn_multiclass.py` are impleme
 
 ## Contents
 
-### Feedforward Neural Networks (FNN)
+### Feedforward Neural Networks (FFN)
 
-- `ffn_binary.py` - Feedforward network with one sigmoid hidden layer for 2D binary classification, implemented from scratch in NumPy with explicit backpropagation.
+- `ffn_binary.py` - Feedforward network with one sigmoid hidden layer for binary classification, implemented from scratch in NumPy with explicit backpropagation.
 - `ffn_multiclass.py` - Feedforward network with two ReLU hidden layers and a softmax output for multiclass classification, implemented from scratch in NumPy.
 - `ffn.py` - PyTorch feedforward network with four ReLU hidden layers for MNIST digit classification, trained with Adam and cross-entropy loss.
 
@@ -66,7 +66,7 @@ pip install numpy scikit-learn matplotlib torch torchvision
 
 ### Install the repository (once per environment)
 
-All scripts import their data from the `Data` package at the repository root. From the repository root (where `pyproject.toml` is located), run:
+All scripts import their data from the `Data` package at the repository root. From the repository root, run:
 
 ```bash
 python -m pip install -e .
@@ -142,7 +142,7 @@ All data are loaded through `Data/data_loaders.py`; the dataset names, sizes and
 
 | Scripts | Loader | Data | Default |
 | --- | --- | --- | --- |
-| `ffn_binary.py` | `load_binary_classification_data` | 2D binary datasets, selected with `--data` | `jigsaw` |
+| `ffn_binary.py` | `load_binary_classification_data` | binary datasets, selected with `--data` | `jigsaw` |
 | `ffn_multiclass.py` | `load_multiclass_classification_data` | Multiclass datasets, selected with `--data` | `blobs` |
 | `ffn.py`, `cnn.py`, `vit.py` | `load_mnist_classification_data` | MNIST, pixels in `[0, 1]` | - |
 | `vae_ffn.py`, `vae_cnn.py` | `load_mnist_generation_data` | MNIST, pixels in `[0, 1]` to match the sigmoid decoder | - |
@@ -242,7 +242,7 @@ $env:MPLBACKEND = "Agg"; python ddpm_unet.py --num-epochs 1
 
 ## Evaluation
 
-The classifiers print the accuracy on both the training and the test set and then display their first misclassified test instances. The from-scratch networks evaluate with `utility_functions.evaluate_accuracy`, the PyTorch ones with `evaluate_model_accuracy`.
+The classifiers print the accuracy on both the training and the test set and then display their first misclassified test instances. The from-scratch networks evaluate with `evaluate_accuracy`, the PyTorch ones with `evaluate_model_accuracy`.
 
 The generative models have no single accuracy number, and are judged from the training curves, the saved sample grids, the generation-progress grids and, for the 1D models, the overlap between the generated histogram and the analytic density.
 

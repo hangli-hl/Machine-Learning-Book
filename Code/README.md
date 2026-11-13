@@ -6,10 +6,10 @@ This directory contains code implementations of the algorithms in the book *Mach
 
 ## Contents
 
+- [Data](./Data/)
 - [Supervised Learning](./Supervised_Learning/)
 - [Unsupervised Learning](./Unsupervised_Learning/)
 - [Deep Learning](./Deep_Learning/)
-- [Data](./Data/): unified dataset loaders shared by all algorithms
 
 ## Algorithms
 
@@ -22,19 +22,19 @@ This directory contains code implementations of the algorithms in the book *Mach
 - Decision Trees
 - Logistic Regression
 - Support Vector Machines (SVM)
-- Boosting Methods (AdaBoost and GBDT)
+- Boosting Methods
 
 ### Unsupervised Learning
 
-- Clustering Methods (k-Means)
+- K-Means Clustering
 - EM Algorithm
-- Markov Chain Monte Carlo Methods (MCMC: Metropolis-Hastings Algorithm and Gibbs Sampling)
+- Markov Chain Monte Carlo Methods (MCMC)
 
 ### Deep Learning
 
-- Feedforward Neural Networks (FNN)
+- Feedforward Neural Networks (FFN)
 - Convolutional Neural Networks (CNN)
-- Transformer
+- Vision Transformer (ViT)
 - Generative Adversarial Networks (GAN)
 - Variational Autoencoders (VAE)
 - Diffusion Models
@@ -42,13 +42,13 @@ This directory contains code implementations of the algorithms in the book *Mach
 
 ## Getting Started
 
-In this repository, the **repository root** is the directory that contains this README, `pyproject.toml` and the `Data/` package.
+In this repository, the **repository root** is the directory that contains this README and `pyproject.toml`.
 
 **1. Install this repository in editable mode (once per environment)** (Python 3.11+). Run one of the following in the repository root:
 
 ```bash
-pip install -e .            # base: Supervised_Learning/, Unsupervised_Learning/, ffn_binary.py, ffn_multiclass.py
-pip install -e ".[deep]"    # additionally: the other Deep_Learning/ scripts, MNIST and 1D Gaussian mixture loaders
+pip install -e .            # traditional machine learning: Supervised_Learning/, Unsupervised_Learning/, Deep_Learning/ffn_binary.py, Deep_Learning/ffn_multiclass.py; include numpy, scikit-learn, etc
+pip install -e ".[deep]"    # deep learning: Deep_Learning/; include torch, torchvision
 ```
 
 **2. Run any script directly**, from the repository root or from inside its own directory, for example:
@@ -57,11 +57,11 @@ pip install -e ".[deep]"    # additionally: the other Deep_Learning/ scripts, MN
 python Supervised_Learning/gradient_boosting_binary.py
 ```
 
-Figures are saved to `./plot` (and `./gen` for generative models) relative to the directory from which the command is launched.
+Results are saved to `./plot` (and `./gen` for generative models) in the directory from which the command is launched.
 
 ## Data
 
-All algorithms get their data from the shared `Data/` package through `Data/data_loaders.py`, so every method is evaluated on identical, reproducible datasets (fixed seed, same train/test split, standardization with training statistics). Algorithm code imports only from `data_loaders`:
+All algorithms get their data from the shared `Data/` package through `Data/data_loaders.py`, so every method is evaluated on identical, reproducible datasets (fixed seed, same train/test split, standardization with training statistics).
 
 ```python
 from Data.data_loaders import load_binary_classification_data
@@ -79,10 +79,10 @@ See [Data/README.md](./Data/README.md) for the available datasets, loader functi
 
 ## 目录
 
+- [数据](./Data/)
 - [监督学习](./Supervised_Learning/)
 - [无监督学习](./Unsupervised_Learning/)
 - [深度学习](./Deep_Learning/)
-- [数据](./Data/)：所有算法共用的统一数据加载模块
 
 ## 算法
 
@@ -90,38 +90,38 @@ See [Data/README.md](./Data/README.md) for the available datasets, loader functi
 
 - 线性回归
 - 感知机
-- K 近邻
+- K近邻（KNN）
 - 朴素贝叶斯
 - 决策树
 - 逻辑斯谛回归
-- 支持向量机
-- 提升方法（AdaBoost 与 GBDT）
+- 支持向量机（SVM）
+- 提升方法
 
 ### 无监督学习
 
-- 聚类方法（k 均值聚类）
-- EM 算法
-- 马尔可夫链蒙特卡罗法（MCMC：Metropolis-Hastings 算法与吉布斯抽样）
+- K均值聚类
+- EM算法
+- 马尔可夫链蒙特卡罗法（MCMC）
 
 ### 深度学习
 
-- 前馈神经网络
-- 卷积神经网络
-- Transformer
-- 生成对抗网络
-- 变分自编码器
+- 前馈神经网络（FFN）
+- 卷积神经网络（CNN）
+- 视觉Transformer（ViT）
+- 生成对抗网络（GAN）
+- 变分自编码器（VAE）
 - 扩散模型
 - 流匹配模型
 
 ## 快速开始
 
-在本仓库中，**仓库根目录**指包含本 README、`pyproject.toml` 和 `Data/` 包的目录。
+在本仓库中，**仓库根目录**指包含本 README 和`pyproject.toml`的目录。
 
 **1. 以可编辑模式安装本仓库（每个环境只需一次）**（Python 3.11+）。在仓库根目录执行其中一条：
 
 ```bash
-pip install -e .            # 基础：Supervised_Learning/、Unsupervised_Learning/、ffn_binary.py、ffn_multiclass.py
-pip install -e ".[deep]"    # 额外：Deep_Learning/ 其余脚本、MNIST 与一维高斯混合加载器
+pip install -e .            # 传统机器学习：Supervised_Learning/、Unsupervised_Learning/、Deep_Learning/ffn_binary.py、Deep_Learning/ffn_multiclass.py；包含numpy、scikit-learn等
+pip install -e ".[deep]"    # 深度学习：Deep_Learning/；包含torch、torchvision
 ```
 
 **2. 直接运行任意脚本**，可以在仓库根目录，也可以进入脚本所在目录，例如：
@@ -130,11 +130,11 @@ pip install -e ".[deep]"    # 额外：Deep_Learning/ 其余脚本、MNIST 与�
 python Supervised_Learning/gradient_boosting_binary.py
 ```
 
-图像保存到相对于启动命令所在目录的 `./plot`（生成模型还有 `./gen`）。
+结果保存到启动命令所在目录的 `./plot`（生成模型还有 `./gen`）。
 
 ## 数据
 
-所有算法都通过共用的 `Data/` 包（`Data/data_loaders.py`）获取数据，因此各方法使用相同且可复现的数据集（固定随机种子、相同的训练/测试划分、用训练集统计量标准化）。算法代码只从 `data_loaders` 导入：
+所有算法都通过共用的 `Data/` 包（`Data/data_loaders.py`）获取数据，因此各方法使用相同且可复现的数据集（固定随机种子、相同的训练/测试划分、用训练集统计量标准化）。
 
 ```python
 from Data.data_loaders import load_binary_classification_data

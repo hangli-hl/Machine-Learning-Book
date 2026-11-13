@@ -23,7 +23,7 @@ Each algorithm is implemented from scratch with NumPy and SciPy and exposed as a
 
 - `plot_functions.py` - Shared plotting: convergence curves with an optional secondary axis, ground-truth versus learned clustering scatter plots with Hungarian label matching, and PCA projections of the parameter trajectory coloured by the diagnostic value.
 
-The files under Shared Modules are libraries imported by the algorithm scripts; all the others are entry points. The four algorithm scripts do not import each other.
+The files under Shared Modules are libraries imported by the algorithm scripts; all the others are entry points.
 
 Datasets are not created in this directory: they come from `Data/data_loaders.py` (see [Datasets](#datasets)).
 
@@ -37,11 +37,11 @@ Python 3.11+ with `numpy`, `scipy`, `scikit-learn` and `matplotlib`.
 pip install numpy scipy scikit-learn matplotlib
 ```
 
-PyTorch is not required: the `Data` package imports it only inside the MNIST and 1D Gaussian mixture loaders, which these scripts do not use.
+PyTorch is not required: the `Data` package imports it only for deep learning.
 
 ### Install the repository (once per environment)
 
-All scripts import their data from the `Data` package at the repository root. From the repository root (where `pyproject.toml` is located), run:
+All scripts import their data from the `Data` package at the repository root. From the repository root, run:
 
 ```bash
 python -m pip install -e .
@@ -81,12 +81,6 @@ Use `-h` to see all options with their defaults:
 
 ```bash
 python gaussian_mixture_metropolis_hastings.py -h
-```
-
-The Metropolis-Hastings sampler is the slowest one, because it evaluates the full mixture likelihood in every one of its 20000 default iterations; pass a smaller `--num-iterations` and `--burn-in` for a quick smoke test:
-
-```bash
-python gaussian_mixture_metropolis_hastings.py --num-iterations 2000 --burn-in 1000
 ```
 
 ---

@@ -47,7 +47,7 @@ Each algorithm is implemented from scratch with NumPy and SciPy and exposed as a
 
 ### Shared Modules
 
-- `utility_functions.py` - Shared utilities: evaluation measures (accuracy, MSE), activation functions (sigmoid, softmax, hinge), loss functions (logistic, cross-entropy) and one-hot encoding.
+- `utility_functions.py` - Shared utilities: evaluation measures (accuracy, MSE), activation functions (sigmoid, softmax, relu), loss functions (logistic, cross-entropy) and one-hot encoding.
 - `plot_functions.py` - Shared plotting: training curves and 2D model visualizations for binary classification (predicted regions, decision boundaries, margins, support vectors, Gaussian densities), multiclass classification and regression surfaces.
 
 The files under Shared Modules are libraries imported by the algorithm scripts; all the others are entry points. `adaboost.py` additionally imports `ClassificationTree`, and the three gradient boosting scripts import `RegressionTree`, as their base learners.
@@ -64,11 +64,11 @@ Python 3.11+ with `numpy`, `scipy`, `scikit-learn` and `matplotlib`.
 pip install numpy scipy scikit-learn matplotlib
 ```
 
-PyTorch is not required: the `Data` package imports it only inside the MNIST and 1D Gaussian mixture loaders, which these scripts do not use.
+PyTorch is not required: the `Data` package imports it only for deep learning.
 
 ### Install the repository (once per environment)
 
-All scripts import their data from the `Data` package at the repository root. From the repository root (where `pyproject.toml` is located), run:
+All scripts import their data from the `Data` package at the repository root. From the repository root, run:
 
 ```bash
 python -m pip install -e .
@@ -135,7 +135,7 @@ Default dataset of each script:
 | Multiclass classification | `load_multiclass_classification_data` | the multiclass scripts | `blobs` |
 | Regression | `load_regression_data` | the regression scripts | `plane` |
 
-`jigsaw` is not linearly separable, which is why the scripts that can model non-linear boundaries default to it.
+`jigsaw` is not linearly separable, which is why the scripts of kernel methods and ensemble methods default to it.
 
 Label conventions differ by algorithm: `perceptron.py`, `linear_svm.py`, `kernel_svm.py` and `adaboost.py` request signed labels in `{-1, 1}` (`signed_label=True` in `load_binary_classification_data`), while the remaining classifiers use `{0, 1}` or `{0, ..., k-1}`. The scripts set this flag themselves, so no manual conversion is needed.
 
