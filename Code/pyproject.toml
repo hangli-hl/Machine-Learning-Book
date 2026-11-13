@@ -5,8 +5,8 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "Machine-Learning-Book"
 version = "0.3"
-requires-python = ">=3.10"
-dependencies = ["numpy", "scikit-learn"]
+requires-python = ">=3.11"
+dependencies = ["numpy", "scipy", "scikit-learn", "matplotlib"]
 
 [project.optional-dependencies]
 deep = ["torch", "torchvision"]

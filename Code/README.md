@@ -44,28 +44,14 @@ This directory contains code implementations of the algorithms in the book *Mach
 
 In this repository, the **repository root** is the directory that contains this README, `pyproject.toml` and the `Data/` package.
 
-**1. Install the dependencies** (Python 3.11+).
+**1. Install this repository in editable mode (once per environment)** (Python 3.11+). Run one of the following in the repository root:
 
 ```bash
-pip install numpy scipy scikit-learn matplotlib torch torchvision
+pip install -e .            # base: Supervised_Learning/, Unsupervised_Learning/, ffn_binary.py, ffn_multiclass.py
+pip install -e ".[deep]"    # additionally: the other Deep_Learning/ scripts, MNIST and 1D Gaussian mixture loaders
 ```
 
-`torch` and `torchvision` are needed only by the scripts in `Deep_Learning/` that use PyTorch, and by the MNIST and 1D Gaussian mixture loaders. The scripts in `Supervised_Learning/` and `Unsupervised_Learning/`, and the from-scratch networks `ffn_binary.py` and `ffn_multiclass.py`, run without them. The exact requirements of each directory are listed in its own README.
-
-**2. Install this repository in editable mode (once per environment).** Run the following in the repository root:
-
-```bash
-python -m pip install -e .
-```
-
-What this does:
-
-- `-e` (editable) registers the repository in the current Python environment as a link to the source tree instead of copying files. Therefore `from Data.data_loaders import ...` works from any working directory.
-- Edits to the source files take effect immediately, with no reinstall.
-- It is needed only once per environment (virtualenv, conda env, ...); repeat it when you create a new one.
-- Without it, the scripts fail with `ModuleNotFoundError: No module named 'Data'`.
-
-**3. Run any script directly**, from the repository root or from inside its own directory, for example:
+**2. Run any script directly**, from the repository root or from inside its own directory, for example:
 
 ```bash
 python Supervised_Learning/gradient_boosting_binary.py
@@ -131,28 +117,14 @@ See [Data/README.md](./Data/README.md) for the available datasets, loader functi
 
 在本仓库中，**仓库根目录**指包含本 README、`pyproject.toml` 和 `Data/` 包的目录。
 
-**1. 安装依赖**（Python 3.11+）。
+**1. 以可编辑模式安装本仓库（每个环境只需一次）**（Python 3.11+）。在仓库根目录执行其中一条：
 
 ```bash
-pip install numpy scipy scikit-learn matplotlib torch torchvision
+pip install -e .            # 基础：Supervised_Learning/、Unsupervised_Learning/、ffn_binary.py、ffn_multiclass.py
+pip install -e ".[deep]"    # 额外：Deep_Learning/ 其余脚本、MNIST 与一维高斯混合加载器
 ```
 
-只有 `Deep_Learning/` 中基于 PyTorch 的脚本，以及 MNIST 和一维高斯混合分布的加载函数需要 `torch` 和 `torchvision`。`Supervised_Learning/` 和 `Unsupervised_Learning/` 中的脚本，以及从零实现的 `ffn_binary.py` 和 `ffn_multiclass.py`，不需要它们。各目录的具体依赖见该目录自己的 README。
-
-**2. 以可编辑模式安装本仓库（每个环境只需一次）。** 在仓库根目录执行：
-
-```bash
-python -m pip install -e .
-```
-
-这一步的作用：
-
-- `-e`（editable）把本仓库以链接的方式注册到当前 Python 环境，而不是复制文件，因此无论在哪个工作目录，`from Data.data_loaders import ...` 都能工作。
-- 修改源码后立即生效，无需重新安装。
-- 每个环境（virtualenv、conda 环境等）只需执行一次，新建环境后要重新执行。
-- 不执行这一步，脚本会报 `ModuleNotFoundError: No module named 'Data'`。
-
-**3. 直接运行任意脚本**，可以在仓库根目录，也可以进入脚本所在目录，例如：
+**2. 直接运行任意脚本**，可以在仓库根目录，也可以进入脚本所在目录，例如：
 
 ```bash
 python Supervised_Learning/gradient_boosting_binary.py

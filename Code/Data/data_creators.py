@@ -14,7 +14,9 @@
 #
 # Label convention: binary labels are {0, 1} with positives (1) listed first.
 
-# Import numpy, torch is imported inside the functions of Gaussian mixture 1D data
+# torch is imported inside the 1D Gaussian mixture functions only,
+# so the NumPy-based creators work without PyTorch installed.
+import numpy as np
 import numpy as np
 
 ##############################################################################
