@@ -373,6 +373,46 @@ def generate_samples_vae(model, epoch, fixed_latents, num_epochs):
 
 
 ##############################################################################
+#                       EXTRACT VAE LATENT REPRESENTATION
+##############################################################################
+
+
+def extract_vae_latent_representations(model, training_loader, device):
+    """
+    Extract the latent representations (means) for all images in the dataset.
+
+    Args:
+        model: trained VAE model
+        training_loader: DataLoader for data
+        device: device to run computations on (CPU or GPU)
+
+    Returns:
+        representations: latent representations (means), numpy array of shape (num_images, latent_size)
+        labels: corresponding labels, numpy array of shape (num_images,)
+    """
+    # Set the model to evaluation mode
+    model.eval()
+
+    representations_list = []
+    labels_list = []
+
+    with torch.no_grad():
+        for images, labels in training_loader:
+            # Move tensors to device
+            images = images.to(device)
+
+            # Encode images to latent distribution parameters
+            representations, _ = model.encoder(images)
+            representations_list.append(representations.cpu())
+            labels_list.append(labels)
+
+    all_representations = torch.cat(representations_list)
+    all_labels = torch.cat(labels_list)
+
+    return all_representations.numpy(), all_labels.numpy()
+
+
+##############################################################################
 #                                MAIN PROGRAM
 ##############################################################################
 

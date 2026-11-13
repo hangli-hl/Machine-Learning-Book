@@ -2,7 +2,7 @@
 
 This directory contains code implementations of the deep learning algorithms presented in *Machine Learning Methods*. It is still under construction, and more implementations will be added.
 
-The two feedforward networks `ffn_binary.py` and `ffn_multiclass.py` are implemented from scratch with NumPy, with scikit-learn used only for the data; all other models are built with PyTorch. Each model is a standalone script with a command-line interface, so one command runs a full train / visualize / evaluate cycle.
+The two feedforward networks `ffn_binary.py` and `ffn_multiclass.py` are implemented from scratch with NumPy; all other models are built with PyTorch. Datasets are obtained through the shared `Data` package at the repository root (`Data/data_loaders.py`). Each model is a standalone script with a command-line interface, so one command runs a full train / visualize / evaluate cycle.
 
 ## Contents
 
@@ -45,11 +45,12 @@ The two feedforward networks `ffn_binary.py` and `ffn_multiclass.py` are impleme
 ### Shared Modules
 
 - `unet.py` - U-shaped networks shared by the diffusion and flow matching scripts: a 2D UNet for MNIST and a 1D UNet for toy data, both conditioned by sinusoidal embeddings of a scalar time or noise level.
-- `data_creators.py` - Dataset creation: synthetic 2D classification data, sklearn datasets, MNIST data loaders for classification and generation, and 1D Gaussian mixture data with its analytic density and score.
 - `utility_functions.py` - Shared utilities: NumPy activation and loss functions, accuracy evaluation, collection of misclassified instances, VAE latent extraction, and device selection.
 - `plot_functions.py` - Shared plotting: training curves, decision boundaries, misclassified images, VAE latent space, 1D trajectories, score and velocity fields, generated image grids, and generation progress.
 
-The last four files are libraries imported by the model scripts; all the others are entry points.
+The last three files are libraries imported by the model scripts; all the others are entry points.
+
+Datasets are not created in this directory: they come from `Data/data_loaders.py` (see [Datasets](#datasets)).
 
 ---
 
@@ -63,13 +64,37 @@ pip install numpy torch torchvision scikit-learn matplotlib
 
 `ffn_binary.py` and `ffn_multiclass.py` need only `numpy`, `scikit-learn` and `matplotlib`.
 
-The scripts import their siblings by module name, so run them from inside this directory:
+### Install the repository in editable mode (once per environment)
+
+All scripts import their data from the `Data` package at the repository root, which lies outside this directory. Install the repository once per environment, from the repository root (where `pyproject.toml` is located):
 
 ```bash
-cd Code/Deep_Learning
+python -m pip install -e .
 ```
 
-The PyTorch scripts select the device automatically through `utility_functions.set_device`, preferring CUDA, then Apple MPS, then CPU. MNIST is downloaded to `./data` on first use.
+What this does:
+
+- `-e` (editable) registers the repository in the current Python environment as a link to the source tree instead of copying files. Therefore `from Data.data_loaders import ...` works from any working directory.
+- Edits to the source files take effect immediately, with no reinstall.
+- It is needed only once per environment (virtualenv, conda env, ...); repeat it when you create a new one.
+- Without it, the scripts fail with `ModuleNotFoundError: No module named 'Data'`.
+
+### Running the scripts
+
+Run a script directly, either from the repository root or from inside this directory:
+
+```bash
+# from the repository root
+python Deep_Learning/ddpm_unet.py --num-epochs 1
+
+# or from inside this directory
+cd Deep_Learning
+python ddpm_unet.py --num-epochs 1
+```
+
+The sibling modules (`unet`, `utility_functions`, `plot_functions`) are imported by module name, which works because Python puts the script's own directory on the import path. Figures are saved to `./plot` and `./gen` relative to the directory from which the command is launched.
+
+The PyTorch scripts select the device automatically through `utility_functions.set_device`, preferring CUDA, then Apple MPS, then CPU. MNIST is downloaded automatically on first use.
 
 ---
 
@@ -117,6 +142,8 @@ python ddpm_unet.py --num-epochs 1
 ---
 
 ## Datasets
+
+All data are loaded through `Data/data_loaders.py`, using `load_binary_classification_data`, `load_multiclass_classification_data`, `load_mnist_classification_data` / `load_mnist_generation_data` and `load_gaussian_mixture_1d_data`. Splits are fixed by random seeds inside the `Data` package.
 
 | Dataset | Used by | Size | Notes |
 | --- | --- | --- | --- |
@@ -222,4 +249,4 @@ The classifiers print the accuracy on both the training and the test set and the
 
 The generative models have no single accuracy number, and are judged from the training curves, the saved sample grids, the generation-progress grids and, for the 1D models, the overlap between the generated histogram and the analytic density.
 
-Every script fixes its seeds after the data is created (`MODEL_SEED = 36` for the classifiers, VAEs and GANs, `MODEL_SEED = 28` for the diffusion and flow matching models; `DATA_SEED = 28` in `data_creators.py`), so repeated runs on the same device are reproducible.
+Every script fixes its seeds after the data is loaded (`MODEL_SEED = 36` for the classifiers, VAEs and GANs, `MODEL_SEED = 28` for the diffusion and flow matching models). The data itself is generated and split with fixed seeds inside the `Data` package, so repeated runs on the same device are reproducible.

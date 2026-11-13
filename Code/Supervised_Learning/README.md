@@ -3,7 +3,7 @@
 
 This directory contains code implementations of the supervised learning algorithms presented in *Machine Learning Methods*. It is still under construction, and more implementations will be added.
 
-Each algorithm is implemented from scratch with NumPy and SciPy and exposed as a standalone script with a command-line interface; scikit-learn is used only to load datasets and to split them.
+Each algorithm is implemented from scratch with NumPy and SciPy and exposed as a standalone script with a command-line interface. Datasets are obtained through the shared `Data` package at the repository root (`Data/data_loaders.py`), which uses scikit-learn to load and split them.
 
 ## Contents
 
@@ -47,11 +47,12 @@ Each algorithm is implemented from scratch with NumPy and SciPy and exposed as a
 
 ### Shared Modules
 
-- `data_creators.py` - Dataset creation: small manually defined 2D sets, synthetic Gaussian, jigsaw, circle, moons, blobs and plane data, and the sklearn Iris, classification and Diabetes datasets, all split and standardized.
 - `utility_functions.py` - Shared utilities: evaluation measures (accuracy, MSE), activation functions (sigmoid, softmax, hinge), loss functions (logistic, cross-entropy) and one-hot encoding.
 - `plot_functions.py` - Shared plotting: training curves and 2D model visualizations for binary classification (predicted regions, decision boundaries, margins, support vectors, Gaussian densities), multiclass classification and regression surfaces.
 
-The last three files are libraries imported by the algorithm scripts; all the others are entry points. `adaboost.py` additionally imports `ClassificationTree`, and the three gradient boosting scripts import `RegressionTree`, as their base learners.
+The last two files are libraries imported by the algorithm scripts; all the others are entry points. `adaboost.py` additionally imports `ClassificationTree`, and the three gradient boosting scripts import `RegressionTree`, as their base learners.
+
+Datasets are not created in this directory: they come from `Data/data_loaders.py` (see [Datasets](#datasets)).
 
 ---
 
@@ -63,11 +64,35 @@ Python 3.11+ with `numpy`, `scipy`, `scikit-learn` and `matplotlib`.
 pip install numpy scipy scikit-learn matplotlib
 ```
 
-The scripts import their siblings by module name, so run them from inside this directory:
+### Install the repository in editable mode (once per environment)
+
+All scripts import their data from the `Data` package at the repository root, which lies outside this directory. Install the repository once per environment, from the repository root (where `pyproject.toml` is located):
 
 ```bash
-cd Code/Supervised_Learning
+python -m pip install -e .
 ```
+
+What this does:
+
+- `-e` (editable) registers the repository in the current Python environment as a link to the source tree instead of copying files. Therefore `from Data.data_loaders import ...` works from any working directory.
+- Edits to the source files take effect immediately, with no reinstall.
+- It is needed only once per environment (virtualenv, conda env, ...); repeat it when you create a new one.
+- Without it, the scripts fail with `ModuleNotFoundError: No module named 'Data'`.
+
+### Running the scripts
+
+Run a script directly, either from the repository root or from inside this directory:
+
+```bash
+# from the repository root
+python Supervised_Learning/kernel_svm.py
+
+# or from inside this directory
+cd Supervised_Learning
+python kernel_svm.py
+```
+
+The sibling modules (`utility_functions`, `plot_functions`, ...) are imported by module name, which works because Python puts the script's own directory on the import path. Figures are saved to `./plot` relative to the directory from which the command is launched.
 
 ---
 
@@ -102,22 +127,21 @@ python kernel_svm.py -h
 
 ## Datasets
 
-Chosen with `--data`. All ship ground-truth labels or values and a train/test split, and all features are standardized with the training mean and standard deviation.
+Chosen with `--data`. Data are loaded through `Data/data_loaders.py`. All datasets ship ground-truth labels or values and a fixed train/test split, and all features are standardized with the training mean and standard deviation.
 
 The default dataset is `gaussians` for the binary classifiers, except `adaboost.py`, `gradient_boosting_binary.py` and `kernel_svm.py`, which default to `jigsaw`.
 
-Binary classification:
+Binary classification (`load_binary_classification_data`):
 
 | Name | Size | Notes |
 | --- | --- | --- |
-| `artificial` | 14 / 10, 2D | Hand-specified, linearly separable, very few points |
 | `gaussians` | 200 / 20, 2D | Two Gaussians with different covariances; the default for all binary classifiers except `adaboost.py`, `gradient_boosting_binary.py` and `kernel_svm.py` |
 | `jigsaw` | 200 / 20, 2D | XOR-like, four Gaussian blobs in two classes, not linearly separable; the default for `adaboost.py`, `gradient_boosting_binary.py` and `kernel_svm.py` |
 | `circle` | 200 / 20, 2D | Inner disc against an outer ring, not linearly separable |
 | `moons` | 200 / 20, 2D | Two interleaving half moons with noise |
 | `iris` | 120 / 30, 4D | Real data, class 2 against classes 0 and 1 |
 
-Multiclass classification:
+Multiclass classification (`load_multiclass_classification_data`):
 
 | Name | Size | Classes | Notes |
 | --- | --- | --- | --- |
@@ -125,15 +149,14 @@ Multiclass classification:
 | `blobs` | 240 / 60, 2D | 3 | Three isotropic blobs; the default for the multiclass scripts |
 | `iris` | 120 / 30, 4D | 3 | Real data, stratified split, two classes overlap |
 
-Regression:
+Regression (`load_regression_data`):
 
 | Name | Size | Notes |
 | --- | --- | --- |
-| `artificial` | 14 / 10, 2D | Hand-specified, values standardized |
 | `plane` | 200 / 20, 2D | `y = 5*x1 - 3*x2 + 2` with Gaussian noise; the default for the regression scripts |
 | `diabetes` | 353 / 89, 10D | Real data, values standardized |
 
-Label conventions differ by algorithm: `perceptron.py`, `linear_svm.py`, `kernel_svm.py` and `adaboost.py` request signed labels in `{-1, 1}`, while the remaining classifiers use `{0, 1}` or `{0, ..., k-1}`. The flag is handled inside `data_creators.select_binary_classification_data`, so no manual conversion is needed.
+Label conventions differ by algorithm: `perceptron.py`, `linear_svm.py`, `kernel_svm.py` and `adaboost.py` request signed labels in `{-1, 1}` (`signed_label=True` in `load_binary_classification_data`), while the remaining classifiers use `{0, 1}` or `{0, ..., k-1}`. The scripts set this flag themselves, so no manual conversion is needed.
 
 Model visualizations require 2D features, so they are skipped for `iris`, `classification` and `diabetes`. The nearest-neighbor, naive Bayes and classification tree plots additionally require exactly two classes.
 
@@ -177,7 +200,7 @@ Examples:
 
 ```bash
 python linear_regression.py --data diabetes --algorithm ne
-python perceptron.py --data artificial --num-epochs 20 --convergence-threshold 0.01
+python perceptron.py --data gaussians --num-epochs 20 --convergence-threshold 0.01
 python k_nearest_neighbor.py --data moons --num-neighbors 5
 python binomial_logistic_regression.py --data circle --algorithm bfgs
 python kernel_svm.py --data jigsaw --kernel poly --degree 2 --C 10
@@ -217,4 +240,4 @@ Each script prints its evaluation measure on both the training and the test set,
 * **Classification** - accuracy from `calculate_accuracy`, the fraction of correctly predicted labels
 * **Regression** - mean squared error from `calculate_mse`
 
-The scripts with stochastic training (`perceptron.py`, `linear_svm.py`, `adaboost.py`) fix `MODEL_SEED = 36` after the data is created, and `data_creators.py` uses `DATA_SEED = 28`, so repeated runs are reproducible. The remaining models are deterministic given the data.
+The scripts with stochastic training (`perceptron.py`, `linear_svm.py`, `adaboost.py`) fix `MODEL_SEED = 36` after the data is loaded. The train/test splits are fixed by random seeds inside the `Data` package, so repeated runs are reproducible. The remaining models are deterministic given the data.

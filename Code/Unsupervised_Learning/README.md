@@ -2,7 +2,7 @@
 
 This directory contains code implementations of the unsupervised learning algorithms presented in *Machine Learning Methods*. It is still under construction, and more implementations will be added.
 
-Each algorithm is implemented from scratch with NumPy and SciPy and exposed as a standalone script with a command-line interface; scikit-learn is used only to load the Iris dataset, to split the data, to compute the Adjusted Rand Index and to run the PCA behind the trajectory plots.
+Each algorithm is implemented from scratch with NumPy and SciPy and exposed as a standalone script with a command-line interface. Datasets are obtained through the shared `Data` package at the repository root (`Data/data_loaders.py`); scikit-learn is used here only to compute the Adjusted Rand Index and to run the PCA behind the trajectory plots.
 
 ## Contents
 
@@ -21,10 +21,11 @@ Each algorithm is implemented from scratch with NumPy and SciPy and exposed as a
 
 ### Shared Modules
 
-- `data_creators.py` - Dataset creation: a small hand-specified 2D set, an unbalanced 2D three-component Gaussian mixture, and the sklearn Iris dataset, all split into training and test sets and standardized.
 - `plot_functions.py` - Shared plotting: convergence curves with an optional secondary axis, ground-truth versus learned clustering scatter plots with Hungarian label matching, and PCA projections of the parameter trajectory coloured by the diagnostic value.
 
-The last two files are libraries imported by the algorithm scripts; all the others are entry points. The four algorithm scripts do not import each other.
+`plot_functions.py` is a library imported by the algorithm scripts; all the others are entry points. The four algorithm scripts do not import each other.
+
+Datasets are not created in this directory: they come from `Data/data_loaders.py` (see [Datasets](#datasets)).
 
 ---
 
@@ -36,11 +37,35 @@ Python 3.11+ with `numpy`, `scipy`, `scikit-learn` and `matplotlib`.
 pip install numpy scipy scikit-learn matplotlib
 ```
 
-The scripts import their siblings by module name, so run them from inside this directory:
+### Install the repository in editable mode (once per environment)
+
+All scripts import their data from the `Data` package at the repository root, which lies outside this directory. Install the repository once per environment, from the repository root (where `pyproject.toml` is located):
 
 ```bash
-cd Code/Unsupervised_Learning
+python -m pip install -e .
 ```
+
+What this does:
+
+- `-e` (editable) registers the repository in the current Python environment as a link to the source tree instead of copying files. Therefore `from Data.data_loaders import ...` works from any working directory.
+- Edits to the source files take effect immediately, with no reinstall.
+- It is needed only once per environment (virtualenv, conda env, ...); repeat it when you create a new one.
+- Without it, the scripts fail with `ModuleNotFoundError: No module named 'Data'`.
+
+### Running the scripts
+
+Run a script directly, either from the repository root or from inside this directory:
+
+```bash
+# from the repository root
+python Unsupervised_Learning/k_means_clustering.py
+
+# or from inside this directory
+cd Unsupervised_Learning
+python k_means_clustering.py
+```
+
+The sibling module `plot_functions` is imported by module name, which works because Python puts the script's own directory on the import path. Figures are saved to `./plot` relative to the directory from which the command is launched.
 
 ---
 
@@ -71,11 +96,10 @@ python gaussian_mixture_metropolis_hastings.py --num-iterations 2000 --burn-in 1
 
 ## Datasets
 
-Chosen with `--data`. All ship ground-truth labels and a train/test split, and all features are standardized with the training mean and standard deviation. The labels are never used for training; they serve only for evaluation and for the ground-truth panel of the clustering plot.
+Chosen with `--data`. Data are loaded through `load_clustering_data` in `Data/data_loaders.py`. Both datasets ship ground-truth labels and a fixed train/test split, and all features are standardized with the training mean and standard deviation. The labels are never used for training; they serve only for evaluation and for the ground-truth panel of the clustering plot.
 
 | Name | Size | Clusters | Notes |
 | --- | --- | --- | --- |
-| `artificial` | 24 / 16, 2D | 2 | Hand-specified, widely separated (one cluster is the mirror image of the other through the origin), very few points |
 | `gaussians` | 1000 / 100, 2D | 3 | Unbalanced weights `(0.4, 0.5, 0.1)`, non-spherical covariances, stratified split; the default |
 | `iris` | 120 / 30, 4D | 3 | Real data, stratified split, two classes overlap |
 
@@ -89,7 +113,7 @@ Dataset and model size:
 
 | Option | Scripts | Default | Meaning |
 | --- | --- | --- | --- |
-| `--data` | all | `gaussians` | `artificial` \| `gaussians` \| `iris` |
+| `--data` | all | `gaussians` | `gaussians` \| `iris` |
 | `--num-clusters` | K-Means | true number in the data | Number of clusters `k` |
 | `--num-components` | the three GMM scripts | true number in the data | Number of Gaussian components `K` |
 
@@ -113,7 +137,7 @@ Examples:
 
 ```bash
 python k_means_clustering.py --data gaussians --num-clusters 4
-python gaussian_mixture_em_algorithm.py --data artificial --convergence-threshold 1e-6
+python gaussian_mixture_em_algorithm.py --data iris --convergence-threshold 1e-6
 python gaussian_mixture_metropolis_hastings.py --data gaussians --num-iterations 5000 --burn-in 2000 --proposal-step 0.05
 python gaussian_mixture_gibbs_sampling.py --data iris --num-iterations 2000 --burn-in 500
 ```
@@ -159,4 +183,4 @@ The test samples are assigned by `predict` under the final parameters, which are
 | Metropolis-Hastings | Post-burn-in sample with the highest log-likelihood | Post-burn-in acceptance rate, best log-likelihood |
 | Gibbs sampling | Post-burn-in sample with the highest log-posterior | Best log-posterior (up to a constant) |
 
-All four methods start from `k` distinct random training samples as initial centroids or means, so the result is a local optimum that depends on the initialization. To make repeated runs reproducible, every script fixes `MODEL_SEED` after the data is created (`32` for K-Means, EM and MH, `64` for Gibbs sampling); `data_creators.py` uses `DATA_SEED = 16` and `plot_functions.py` uses `PLOT_SEED = 64` for the PCA.
+All four methods start from `k` distinct random training samples as initial centroids or means, so the result is a local optimum that depends on the initialization. To make repeated runs reproducible, every script fixes `MODEL_SEED` after the data is loaded (`32` for K-Means, EM and MH, `64` for Gibbs sampling); the train/test split is fixed by a random seed inside the `Data` package, and `plot_functions.py` uses `PLOT_SEED = 64` for the PCA.

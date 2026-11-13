@@ -42,10 +42,10 @@ This directory contains code implementations of the algorithms in the book *Mach
 
 ## Getting Started
 
-**1. Install the dependencies.**
+**1. Install the dependencies** (Python 3.11+).
 
 ```bash
-pip install numpy scikit-learn torch torchvision
+pip install numpy scipy scikit-learn matplotlib torch torchvision
 ```
 
 **2. Install this repository in editable mode (once per environment).** Run the following in the repository root, where `pyproject.toml` is located:
@@ -54,11 +54,15 @@ pip install numpy scikit-learn torch torchvision
 python -m pip install -e .
 ```
 
-**3. Run any script directly**, for example:
+This makes the shared `Data` package importable from every script, whatever the working directory, and source edits take effect without reinstalling. Without it, scripts fail with `ModuleNotFoundError: No module named 'Data'`.
+
+**3. Run any script directly**, from the repository root or from inside its own directory, for example:
 
 ```bash
 python Supervised_Learning/gradient_boosting_binary.py
 ```
+
+Figures are saved to `./plot` (and `./gen` for generative models) relative to the directory from which the command is launched.
 
 ## Data
 
@@ -86,6 +90,8 @@ Conventions:
 - Splits are fixed by random seeds, so results are reproducible.
 
 Repository-defined synthetic datasets are generated in `Data/data_creators.py`. Algorithm code should only use `data_loaders.py` and should not import `data_creators.py`.
+
+See [Data/README.md](./Data/README.md) for the full dataset specification.
 
 ---
 
@@ -133,10 +139,10 @@ Repository-defined synthetic datasets are generated in `Data/data_creators.py`. 
 
 ## 快速开始
 
-**1. 安装依赖。**
+**1. 安装依赖**(Python 3.11+)。
 
 ```bash
-pip install numpy scikit-learn torch torchvision
+pip install numpy scipy scikit-learn matplotlib torch torchvision
 ```
 
 **2. 以可编辑模式安装本仓库(每个环境只需一次)。** 在仓库根目录(`pyproject.toml` 所在目录)执行:
@@ -145,11 +151,15 @@ pip install numpy scikit-learn torch torchvision
 python -m pip install -e .
 ```
 
-**3. 直接运行任意脚本**,例如:
+这样无论在哪个工作目录,所有脚本都能导入共用的 `Data` 包,修改源码后也无需重新安装。不执行这一步,脚本会报 `ModuleNotFoundError: No module named 'Data'`。
+
+**3. 直接运行任意脚本**,可以在仓库根目录,也可以进入脚本所在目录,例如:
 
 ```bash
 python Supervised_Learning/gradient_boosting_binary.py
 ```
+
+图像保存到相对于启动命令所在目录的 `./plot`(生成模型还有 `./gen`)。
 
 ## 数据
 
@@ -177,3 +187,5 @@ train_x, train_y, test_x, test_y = load_binary_classification_data("moons", sign
 - 数据划分由固定随机种子决定,结果可复现。
 
 本仓库自定义的合成数据集在 `Data/data_creators.py` 中生成。算法代码只应使用 `data_loaders.py`,不要直接导入 `data_creators.py`。
+
+完整的数据集说明见 [Data/README.md](./Data/README.md)。
