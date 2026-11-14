@@ -81,7 +81,7 @@ def create_gaussians_binary_data(seed):
     """
     rng = np.random.RandomState(seed)
 
-    means = [[2, 5], [3, -2]]  # positive, negative
+    means = [[2, 2], [2, -1]]  # positive, negative
     covs = [[[1, -1], [-1, 3]], [[1, 0.5], [0.5, 2]]]
 
     instances = _generate_gaussian_points(means, covs, [110, 110], rng)

@@ -116,7 +116,7 @@ class LinearSVM:
         margins = labels * self.forward(instances)
 
         # Average hinge loss plus L2 regularization (bias is not regularized)
-        loss = np.mean(uf.hinge(margins)) + 0.5 * self.regularization * (
+        loss = np.mean(uf.hinge_loss(margins)) + 0.5 * self.regularization * (
             self.weights @ self.weights
         )
         return loss

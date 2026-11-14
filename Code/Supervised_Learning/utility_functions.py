@@ -147,7 +147,7 @@ def softmax(z):
 ##############################################################################
 
 
-def hinge(z):
+def hinge_loss(z):
     """
     Compute the hinge function.
 

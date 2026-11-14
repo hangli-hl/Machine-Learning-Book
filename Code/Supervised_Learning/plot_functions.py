@@ -657,7 +657,7 @@ def visualize_gradient_boosting_binary(instances, labels, model):
 ##############################################################################
 
 
-def visualize_ffn_binary(instances, labels, model):
+def visualize_feedforward_network_binary(instances, labels, model):
     """
     Visualize the Feedforward Network for binary classification in 2D space.
 
@@ -671,7 +671,7 @@ def visualize_ffn_binary(instances, labels, model):
         labels,
         lambda grid: model.forward(grid).ravel(),
         title="Feedforward Network for Binary Classification",
-        file_name="ffn_binary_model",
+        file_name="feedforward_network_binary_model",
         prediction_type="probability",
     )
 
@@ -813,7 +813,7 @@ def visualize_gradient_boosting_multiclass(instances, labels, model):
 ##############################################################################
 
 
-def visualize_ffn_multiclass(instances, labels, model):
+def visualize_feedforward_network_multiclass(instances, labels, model):
     """
     Visualize the Feedforward Network for multiclass classification in 2D space.
 
@@ -828,7 +828,7 @@ def visualize_ffn_multiclass(instances, labels, model):
         lambda grid: model.predict(grid)[1].ravel(),
         num_classes=model.output_size,
         title="Feedforward Network for Multiclass Classification",
-        file_name="ffn_multiclass_model",
+        file_name="feedforward_network_multiclass_model",
     )
 
 
