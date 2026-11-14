@@ -126,7 +126,7 @@ def _config_fig(ax, title):
     ax.legend()
 
 
-def _save_fig(fig, file_name):
+def _save_fig(fig, file_name, directory=PLOT_DIR):
     """
     Save a figure to the plot directory, display it and release it.
 
@@ -135,13 +135,13 @@ def _save_fig(fig, file_name):
         file_name: name of the saved file, without directory and extension
     """
     os.makedirs(PLOT_DIR, exist_ok=True)
-    path = os.path.join(PLOT_DIR, f"{file_name}.png")
+    path = os.path.join(directory, f"{file_name}.png")
     fig.savefig(path, dpi=150)
     plt.show()
     plt.close(fig)
 
 
-def _default_file_name(model_name, suffix):
+def default_file_name(model_name, suffix):
     """
     Build a file name from a model name and a suffix.
 
@@ -185,7 +185,7 @@ def plot_training_curve(loss_log, model_name, loss_name, log_x=True):
     fig.tight_layout()
 
     # Save the figure to the plot directory
-    file_name = _default_file_name(model_name, "training_curve")
+    file_name = default_file_name(model_name, "training_curve")
     _save_fig(fig, file_name)
 
 
@@ -653,6 +653,30 @@ def visualize_gradient_boosting_binary(instances, labels, model):
 
 
 ##############################################################################
+#          VISUALIZE FEED-FORWARD NETWORK FOR BINARY CLASSIFICATION
+##############################################################################
+
+
+def visualize_ffn_binary(instances, labels, model):
+    """
+    Visualize the Feedforward Network for binary classification in 2D space.
+
+    Args:
+        instances: 2D data points, shape (num_instances, 2)
+        labels: class labels, shape (num_instances,), labels in {0, 1}
+        model: trained Feedforward Network model
+    """
+    visualize_binary_classification(
+        instances,
+        labels,
+        lambda grid: model.forward(grid).ravel(),
+        title="Feedforward Network for Binary Classification",
+        file_name="ffn_binary_model",
+        prediction_type="probability",
+    )
+
+
+##############################################################################
 #            VISUALIZATION FUNCTIONS FOR MULTICLASS CLASSIFICATION
 ##############################################################################
 
@@ -781,6 +805,30 @@ def visualize_gradient_boosting_multiclass(instances, labels, model):
         num_classes=model.num_classes,
         title="Gradient Boosting Multiclass Classifier",
         file_name="gradient_boosting_multiclass_model",
+    )
+
+
+##############################################################################
+#        VISUALIZE FEED-FORWARD NETWORK FOR MULTICLASS CLASSIFICATION
+##############################################################################
+
+
+def visualize_ffn_multiclass(instances, labels, model):
+    """
+    Visualize the Feedforward Network for multiclass classification in 2D space.
+
+    Args:
+        instances: 2D data points, shape (num_instances, 2)
+        labels: class labels, shape (num_instances,)
+        model: trained Feedforward Network model
+    """
+    visualize_multiclass_classification(
+        instances,
+        labels,
+        lambda grid: model.predict(grid)[1].ravel(),
+        num_classes=model.output_size,
+        title="Feedforward Network for Multiclass Classification",
+        file_name="ffn_multiclass_model",
     )
 
 

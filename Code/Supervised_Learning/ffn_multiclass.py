@@ -195,7 +195,7 @@ class FeedforwardMulticlass:
 
             # Calculate and store average cross-entropy loss on full training set
             self.forward(instances)
-            loss = uf.cross_entropy_loss(labels_onehot, self.output_probs)
+            loss = uf.cross_entropy_loss(labels, self.output_probs)
             self.loss_log.append(loss)
 
             # Print progress
@@ -418,10 +418,7 @@ if __name__ == "__main__":
 
     # Plot training loss of ffn multiclass
     pf.plot_training_curve(
-        model.loss_log,
-        "FFN-Multiclass",
-        x_label="training epochs",
-        y_label="cross-entropy loss",
+        model.loss_log, "FFN-Multiclass", "Cross-Entropy Loss"
     )
 
     # Evaluate on training set
@@ -438,6 +435,4 @@ if __name__ == "__main__":
 
     # Visualize the ffn multiclass model (only for 2D data)
     if num_features == 2:
-        pf.visualize_ffn_multiclass(
-            training_instances, training_labels, model, file_name="ffn_multiclass_model"
-        )
+        pf.visualize_ffn_multiclass(training_instances, training_labels, model)

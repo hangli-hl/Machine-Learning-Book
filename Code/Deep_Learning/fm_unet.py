@@ -458,7 +458,7 @@ if __name__ == "__main__":
         device,
         num_gen_images,
     )
-    print(f"Generated images saved to {pf.GEN_DIR}")
+    print(f"Generated images saved to {pf.PLOT_DIR}")
 
     # Plot training loss curve
     print("Plotting training loss curve")

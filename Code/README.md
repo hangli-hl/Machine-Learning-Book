@@ -47,7 +47,7 @@ In this repository, the **repository root** is the directory that contains this 
 **1. Install this repository in editable mode (once per environment)** (Python 3.11+). Run one of the following in the repository root:
 
 ```bash
-pip install -e .            # traditional machine learning: Supervised_Learning/, Unsupervised_Learning/, Deep_Learning/ffn_binary.py, Deep_Learning/ffn_multiclass.py; include numpy, scikit-learn, etc
+pip install -e .            # traditional machine learning: Supervised_Learning/, Unsupervised_Learning/; include numpy, scikit-learn, etc
 pip install -e ".[deep]"    # deep learning: Deep_Learning/; include torch, torchvision
 ```
 
@@ -120,7 +120,7 @@ See [Data/README.md](./Data/README.md) for the available datasets, loader functi
 **1. 以可编辑模式安装本仓库（每个环境只需一次）**（Python 3.11+）。在仓库根目录执行其中一条：
 
 ```bash
-pip install -e .            # 传统机器学习：Supervised_Learning/、Unsupervised_Learning/、Deep_Learning/ffn_binary.py、Deep_Learning/ffn_multiclass.py；包含numpy、scikit-learn等
+pip install -e .            # 传统机器学习：Supervised_Learning/、Unsupervised_Learning/，包含numpy、scikit-learn等
 pip install -e ".[deep]"    # 深度学习：Deep_Learning/；包含torch、torchvision
 ```
 

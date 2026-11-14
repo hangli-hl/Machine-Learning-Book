@@ -358,7 +358,7 @@ if __name__ == "__main__":
 
     # Plot training loss of ffn binary
     pf.plot_training_curve(
-        model.loss_log, "FFN-Binary", x_label="training epochs", y_label="logistic loss"
+        model.loss_log, "FFN-Binary", "Logistic Loss"
     )
 
     # Evaluate on training set
@@ -373,6 +373,4 @@ if __name__ == "__main__":
 
     # Visualize the ffn binary model (only for 2D data)
     if num_features == 2:
-        pf.visualize_ffn_binary(
-            training_instances, training_labels, model, file_name="ffn_binary_model"
-        )
+        pf.visualize_ffn_binary(training_instances, training_labels, model)

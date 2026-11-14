@@ -537,7 +537,7 @@ if __name__ == "__main__":
         optimizer,
         device,
     )
-    print(f"Generated images saved to {pf.GEN_DIR}")
+    print(f"Generated images saved to {pf.PLOT_DIR}")
 
     # Plot training loss curve -> ./plot/vae_cnn_training_curve.png
     pf.plot_training_curve(loss_log, MODEL_NAME, y_label="VAE loss per image")

@@ -14,10 +14,8 @@ from sklearn.manifold import TSNE
 # Random seed for reproducibility
 MODEL_SEED = 64
 
-# Directory for analysis plots
+# Directory for analysis plots and generation results
 PLOT_DIR = "./plot"
-# Directory for generative results
-GEN_DIR = "./gen"
 
 
 ##############################################################################
@@ -37,7 +35,7 @@ def _save_fig(fig, file_name, directory=PLOT_DIR, show=True):
         fig: matplotlib figure
         file_name: name of the saved file, without directory and extension
         directory: target directory, PLOT_DIR for analysis plots and
-            GEN_DIR for generative results
+            PLOT_DIR for generative results
         show: whether to display the figure; set to False when the figure is
             written once per epoch inside a training loop, so that training is
             not interrupted by dozens of blocking windows
@@ -47,7 +45,7 @@ def _save_fig(fig, file_name, directory=PLOT_DIR, show=True):
     fig.savefig(path, dpi=150)
 
     has_display = (
-        sys.platform == "darwin"
+        sys.platform in ("darwin", "win32")
         or os.environ.get("DISPLAY")
         or os.environ.get("WAYLAND_DISPLAY")
     )
@@ -157,197 +155,6 @@ def plot_training_curve(
     ax.legend()
     fig.tight_layout()
 
-    _save_fig(fig, file_name, directory=PLOT_DIR)
-
-
-##############################################################################
-#              VISUALIZE FEED-FORWARD NETWORK FOR CLASSIFICATION
-##############################################################################
-
-
-def visualize_ffn_binary(instances, labels, model, file_name):
-    """
-    Visualize the feedforward network decision boundary in 2D space.
-
-    Plot the training data points, decision boundary (P=0.5), and
-    probability contours showing confidence regions.
-
-    Note that it assumes that the classes are binary and the data is 2D.
-
-    Args:
-        instances: 2D data points, shape (num_instances, 2)
-        labels: true labels, shape (num_instances, ), labels in {0, 1}
-        model: trained Feedforward Network model
-        file_name: name of the model visualization file, string
-    """
-    # Initialize figure and axes
-    fig, ax = plt.subplots(figsize=(8, 6))
-
-    # Set axis limits with padding
-    x_min, x_max = instances[:, 0].min() - 1, instances[:, 0].max() + 1
-    y_min, y_max = instances[:, 1].min() - 1, instances[:, 1].max() + 1
-    ax.set_xlim(x_min, x_max)
-    ax.set_ylim(y_min, y_max)
-
-    # Generate grid for visualization
-    x = np.linspace(x_min, x_max, 200)
-    y = np.linspace(y_min, y_max, 200)
-    X, Y = np.meshgrid(x, y)
-    Z = np.c_[X.ravel(), Y.ravel()]
-
-    # Predict probabilities for all grid points
-    probs = model.forward(Z)
-    probs = probs.reshape(X.shape)
-
-    # Plot decision boundary at P(y=1|x) = 0.5
-    ax.contour(X, Y, probs, levels=[0.5], colors="red", linestyles="-", alpha=0.5)
-
-    # Plot probability regions with different colors
-    # White: very likely negative (P < 0.3)
-    # Yellow: somewhat negative (0.3 <= P < 0.5)
-    # Orange: somewhat positive (0.5 <= P < 0.7)
-    # Red: very likely positive (P >= 0.7)
-    contourf = ax.contourf(
-        X,
-        Y,
-        probs,
-        alpha=0.3,
-        levels=[0, 0.3, 0.5, 0.7, 1],
-        colors=["white", "yellow", "orange", "red"],
-    )
-    fig.colorbar(contourf, ax=ax, label="predicted probability")
-
-    # Separate positive and negative instances
-    pos_instances = instances[labels == 1]
-    neg_instances = instances[labels == 0]
-
-    # Plot instances, colored by their true labels
-    ax.scatter(
-        pos_instances[:, 0],
-        pos_instances[:, 1],
-        marker="o",
-        c="green",
-        label="positive instances",
-    )
-    ax.scatter(
-        neg_instances[:, 0],
-        neg_instances[:, 1],
-        marker="x",
-        c="blue",
-        label="negative instances",
-    )
-
-    # Configure plot
-    ax.set_title("Feedforward Network for Binary Classification")
-    ax.set_xlabel("x1")
-    ax.set_ylabel("x2")
-    ax.axhline(0, color="black", linewidth=0.5, alpha=0.3)
-    ax.axvline(0, color="black", linewidth=0.5, alpha=0.3)
-    ax.grid(alpha=0.3)
-    ax.legend()
-    fig.tight_layout()
-
-    # Save the model visualization to the file
-    _save_fig(fig, file_name, directory=PLOT_DIR)
-
-
-def visualize_ffn_multiclass(instances, labels, model, file_name):
-    """
-    Visualize the feedforward network predictions in 2D space using contour plot.
-
-    Plot the decision boundaries and actual data points colored by their true class.
-
-    Note that it assumes that the data is 2D.
-
-    Args:
-        instances: 2D multiclass classification data, shape (num_instances, 2)
-        labels: classification labels, shape (num_instances, ), labels in {0, 1,..., num_classes-1}
-        model: trained Feedforward Network model
-        file_name: name of the model visualization file
-    """
-    # Initialize figure and axes
-    fig, ax = plt.subplots(figsize=(8, 6))
-
-    # Set axis limits with padding
-    x_min, x_max = (
-        instances[:, 0].min() - 1,
-        instances[:, 0].max() + 1,
-    )
-    y_min, y_max = (
-        instances[:, 1].min() - 1,
-        instances[:, 1].max() + 1,
-    )
-    ax.set_xlim(x_min, x_max)
-    ax.set_ylim(y_min, y_max)
-
-    # Generate grid for visualization
-    x = np.linspace(x_min, x_max, 500)
-    y = np.linspace(y_min, y_max, 500)
-    X, Y = np.meshgrid(x, y)
-    points = np.c_[X.ravel(), Y.ravel()]
-
-    # Predict class for all grid points
-    _, C = model.predict(points)
-    C = C.reshape(X.shape)
-
-    levels = np.arange(model.output_size + 1) - 0.5
-    # Plot decision regions with different colors
-    contourf = ax.contourf(
-        X,
-        Y,
-        C,
-        alpha=0.3,
-        levels=levels,
-        cmap="viridis",
-    )
-
-    # Plot decision boundary at class transitions
-    ax.contour(
-        X,
-        Y,
-        C,
-        levels=levels,
-        colors="red",
-        linestyles="-",
-        alpha=0.5,
-    )
-
-    # Plot instances, colored by their true class
-    scatter = ax.scatter(
-        instances[:, 0],
-        instances[:, 1],
-        c=labels,
-        cmap="viridis",
-        marker="o",
-        s=50,
-        edgecolors="black",
-        linewidths=1.5,
-    )
-
-    # Add legend for classes
-    for class_index in range(model.output_size):
-        ax.scatter(
-            [],
-            [],
-            c=[scatter.cmap(scatter.norm(class_index))],
-            marker="o",
-            s=50,
-            edgecolors="black",
-            linewidths=1.5,
-            label=f"class {class_index}",
-        )
-
-    # Configure plot
-    ax.set_title("Feedforward Network for Multiclass Classification")
-    ax.set_xlabel("x1")
-    ax.set_ylabel("x2")
-    ax.axhline(0, color="black", linewidth=0.5, alpha=0.3)
-    ax.axvline(0, color="black", linewidth=0.5, alpha=0.3)
-    ax.grid(alpha=0.3)
-    ax.legend()
-    fig.tight_layout()
-
-    # Save the model visualization to the file
     _save_fig(fig, file_name, directory=PLOT_DIR)
 
 
@@ -608,7 +415,7 @@ def plot_1d_gen_samples(
     ax.grid(alpha=0.3)
     fig.tight_layout()
 
-    _save_fig(fig, file_name, directory=GEN_DIR, show=True)
+    _save_fig(fig, file_name, directory=PLOT_DIR, show=True)
 
 
 ##############################################################################
@@ -661,7 +468,7 @@ def plot_generated_images(
     fig.suptitle(title)
     fig.tight_layout()
 
-    _save_fig(fig, file_name, directory=GEN_DIR, show=show)
+    _save_fig(fig, file_name, directory=PLOT_DIR, show=show)
 
 
 ##############################################################################
@@ -727,4 +534,4 @@ def plot_generation_progress(
     fig.suptitle(title)
     fig.tight_layout()
 
-    _save_fig(fig, file_name, directory=GEN_DIR, show=show)
+    _save_fig(fig, file_name, directory=PLOT_DIR, show=show)

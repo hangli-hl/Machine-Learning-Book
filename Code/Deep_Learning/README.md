@@ -2,14 +2,12 @@
 
 This directory contains code implementations of the deep learning algorithms presented in *Machine Learning Methods*. It is still under construction, and more implementations will be added.
 
-The two feedforward networks `ffn_binary.py` and `ffn_multiclass.py` are implemented from scratch with NumPy; all other models are built with PyTorch. Datasets are obtained through the shared `Data` package at the repository root (`Data/data_loaders.py`). Each model is a standalone script with a command-line interface, so one command runs a full train / visualize / evaluate cycle.
+All models are built with PyTorch. Datasets are obtained through the shared `Data` package at the repository root (`Data/data_loaders.py`). Each model is a standalone script with a command-line interface, so one command runs a full train / visualize / evaluate cycle.
 
 ## Contents
 
-### Feedforward Neural Networks (FFN)
+### Feedforward Neural Network (FFN)
 
-- `ffn_binary.py` - Feedforward network with one sigmoid hidden layer for binary classification, implemented from scratch in NumPy with explicit backpropagation.
-- `ffn_multiclass.py` - Feedforward network with two ReLU hidden layers and a softmax output for multiclass classification, implemented from scratch in NumPy.
 - `ffn.py` - PyTorch feedforward network with four ReLU hidden layers for MNIST digit classification, trained with Adam and cross-entropy loss.
 
 ### Convolutional Neural Networks (CNN)
@@ -45,8 +43,8 @@ The two feedforward networks `ffn_binary.py` and `ffn_multiclass.py` are impleme
 ### Shared Modules
 
 - `unet.py` - U-shaped networks shared by the diffusion and flow matching scripts: a 2D UNet for MNIST and a 1D UNet for toy data, both conditioned by sinusoidal embeddings of a scalar time or noise level.
-- `utility_functions.py` - Shared utilities: NumPy activation and loss functions, accuracy evaluation, collection of misclassified instances, VAE latent extraction, and device selection.
-- `plot_functions.py` - Shared plotting: training curves, decision boundaries, misclassified images, VAE latent space, 1D trajectories, score and velocity fields, generated image grids, and generation progress.
+- `utility_functions.py` - Shared utilities: accuracy evaluation, collection of misclassified instances, and device selection.
+- `plot_functions.py` - Shared plotting: training curves, misclassified images, VAE latent space, 1D trajectories, score and velocity fields, generated image grids, and generation progress.
 
 The files under Shared Modules are libraries imported by the model scripts; all the others are entry points.
 
@@ -61,8 +59,6 @@ Python 3.11+ with `numpy`, `scikit-learn`, `matplotlib`, `torch` and `torchvisio
 ```bash
 pip install numpy scikit-learn matplotlib torch torchvision
 ```
-
-`ffn_binary.py` and `ffn_multiclass.py` need only `numpy`, `scikit-learn` and `matplotlib`, because the `Data` package imports PyTorch only inside the MNIST and 1D Gaussian mixture loaders.
 
 ### Install the repository (once per environment)
 
@@ -87,7 +83,7 @@ cd Deep_Learning
 python ddpm_unet.py --num-epochs 1
 ```
 
-The sibling modules (`unet`, `utility_functions`, `plot_functions`) are imported by module name, which works because Python puts the script's own directory on the import path. Figures are saved to `./plot` and `./gen` relative to the directory from which the command is launched.
+The sibling modules (`unet`, `utility_functions`, `plot_functions`) are imported by module name, which works because Python puts the script's own directory on the import path. Figures are saved to `./plot` relative to the directory from which the command is launched.
 
 The PyTorch scripts select the device automatically through `utility_functions.set_device`, preferring CUDA, then Apple MPS, then CPU. MNIST is downloaded automatically on first use.
 
@@ -96,10 +92,6 @@ The PyTorch scripts select the device automatically through `utility_functions.s
 ## Quick start
 
 ```bash
-# From-scratch feedforward networks on small 2D / low-dimensional data
-python ffn_binary.py
-python ffn_multiclass.py
-
 # Classifiers on MNIST
 python ffn.py
 python cnn.py
@@ -142,14 +134,10 @@ All data are loaded through `Data/data_loaders.py`; the dataset names, sizes and
 
 | Scripts | Loader | Data | Default |
 | --- | --- | --- | --- |
-| `ffn_binary.py` | `load_binary_classification_data` | binary datasets, selected with `--data` | `jigsaw` |
-| `ffn_multiclass.py` | `load_multiclass_classification_data` | Multiclass datasets, selected with `--data` | `blobs` |
 | `ffn.py`, `cnn.py`, `vit.py` | `load_mnist_classification_data` | MNIST, pixels in `[0, 1]` | - |
 | `vae_ffn.py`, `vae_cnn.py` | `load_mnist_generation_data` | MNIST, pixels in `[0, 1]` to match the sigmoid decoder | - |
 | `gan_ffn.py`, `gan_cnn.py`, `ddpm_unet.py`, `smld_unet.py`, `fm_unet.py` | `load_mnist_generation_data` with `tanh_range=True` | MNIST, pixels in `[-1, 1]` to match the tanh output and the samplers | - |
 | `ddpm_1d.py`, `smld_1d.py`, `fm_1d.py` | `load_gaussian_mixture_1d_data` | 1D Gaussian mixture (30% at `-5`, 70% at `+5`), with analytic density and score for reference curves | 2000 samples |
-
-The 2D datasets are the only ones whose model can be drawn as a decision boundary, so `ffn_binary.py` and `ffn_multiclass.py` skip that plot for `classification` and `iris`.
 
 ---
 
@@ -162,17 +150,6 @@ Shared by the three MNIST classifiers (`ffn.py`, `cnn.py`, `vit.py`):
 | `--num-epochs` | `10` | Number of training epochs |
 | `--learning-rate` | `0.001` | Learning rate for Adam |
 | `--batch-size` | `128` | Batch size for training and testing |
-
-From-scratch feedforward networks:
-
-| Option | Script | Default | Meaning |
-| --- | --- | --- | --- |
-| `--data` | both | `jigsaw` (`ffn_binary.py`), `blobs` (`ffn_multiclass.py`) | Dataset name |
-| `--hidden-size` | `ffn_binary.py` | `4` | Units in the single hidden layer |
-| `--hidden1-size`, `--hidden2-size` | `ffn_multiclass.py` | `6`, `6` | Units in the two hidden layers |
-| `--num-epochs` | both | `10000` | Number of training epochs |
-| `--learning-rate` | both | `0.1` (`ffn_binary.py`), `0.01` (`ffn_multiclass.py`) | Step size for gradient descent |
-| `--batch-size` | both | `None` | Mini-batch size for SGD; full-batch GD when omitted |
 
 MNIST generative models:
 
@@ -203,7 +180,7 @@ Diffusion and flow matching specifics:
 Examples:
 
 ```bash
-python ffn_binary.py --data moons --hidden-size 8 --batch-size 32
+python ffn.py --num-epochs 5 --batch-size 256
 python vit.py --num-epochs 3 --batch-size 256
 python vae_cnn.py --latent-size 8 --num-epochs 20
 python smld_unet.py --num-epochs 5 --num-langevin-steps 2
@@ -214,17 +191,14 @@ python fm_1d.py --solver euler --num-steps 20
 
 ## Output
 
-Figures are written to two directories, both created automatically, with re-runs overwriting previous files:
+All figures are written to the `./plot` directory, which is created automatically; re-runs overwrite previous files. It contains training curves, misclassified images, per-epoch sample grids, generation-progress grids, 1D generated-sample histograms, VAE latent spaces, 1D trajectories, learned score plots and velocity fields.
 
-- `./plot` - analysis plots: training curves, decision boundaries, misclassified images, VAE latent spaces, 1D trajectories, learned score and velocity fields
-- `./gen` - generative results: per-epoch sample grids, generation-progress grids, 1D generated-sample histograms
-
-File names are derived from the model name, for example `./plot/cnn_training_curve.png`, `./plot/vit_misclassified.png`, `./plot/vae_ffn_latent_space.png`, `./gen/gan_cnn_epoch_50.png`, `./gen/ddpm_unet_prog.png`, `./gen/fm_1d_gen.png`.
+File names are derived from the model name, for example `./plot/cnn_training_curve.png`, `./plot/vit_misclassified.png`, `./plot/vae_ffn_latent_space.png`, `./plot/gan_cnn_epoch_50.png`, `./plot/ddpm_unet_prog.png`, `./plot/fm_1d_gen.png`.
 
 - **Training curve** - loss against training iterations, on a log y axis by default. The GAN scripts draw the discriminator and generator losses in one figure.
 - **Misclassified images** - the first 20 misclassified test digits with their true and predicted labels.
 - **Latent space** - VAE latent means of up to 5000 training images projected to 2D by t-SNE and coloured by digit.
-- **Sample grid** - a 6x6 grid decoded from the same fixed latent vectors (VAE, GAN) or freshly sampled noise (DDPM, SMLD, FM) after every epoch, so the saved files show how training progresses. Only the last epoch is displayed on screen.
+- **Sample grid** - a 6x6 grid decoded from the same fixed latent vectors (VAE, GAN) or freshly sampled noise (DDPM, SMLD, FM) after every epoch, so the saved files show how training progresses. Each epoch writes its own file, so a long run leaves one file per epoch in `./plot`. Only the last epoch is displayed on screen.
 - **Generation progress** - one row per sample, columns being snapshots from noise to the final image, with the columns concentrated near the end of the trajectory where structure appears.
 - **1D plots** - forward and reverse (or conditional-path, generative-ODE and inverse-ODE) trajectories, the learned score against the analytic score, the velocity field over `(x, t)`, and the generated distribution overlaid on the true density.
 
@@ -242,7 +216,7 @@ $env:MPLBACKEND = "Agg"; python ddpm_unet.py --num-epochs 1
 
 ## Evaluation
 
-The classifiers print the accuracy on both the training and the test set and then display their first misclassified test instances. The from-scratch networks evaluate with `evaluate_accuracy`, the PyTorch ones with `evaluate_model_accuracy`.
+The classifiers print the accuracy on both the training and the test set, using `evaluate_model_accuracy`, and then display their first misclassified test instances.
 
 The generative models have no single accuracy number, and are judged from the training curves, the saved sample grids, the generation-progress grids and, for the 1D models, the overlap between the generated histogram and the analytic density.
 

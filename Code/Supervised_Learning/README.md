@@ -3,7 +3,7 @@
 
 This directory contains code implementations of the supervised learning algorithms presented in *Machine Learning Methods*. It is still under construction, and more implementations will be added.
 
-Each algorithm is implemented from scratch with NumPy and SciPy and exposed as a standalone script with a command-line interface. Datasets are obtained through the shared `Data` package at the repository root (`Data/data_loaders.py`), which uses scikit-learn to load and split them.
+Each algorithm is implemented from scratch with NumPy and SciPy (the feedforward networks use NumPy only) and exposed as a standalone script with a command-line interface. Datasets are obtained through the shared `Data` package at the repository root (`Data/data_loaders.py`), which uses scikit-learn to load and split them.
 
 ## Contents
 
@@ -38,6 +38,13 @@ Each algorithm is implemented from scratch with NumPy and SciPy and exposed as a
 - `linear_svm.py` - Linear SVM trained by stochastic gradient descent on the L2-regularized hinge loss, visualized with its decision boundary and margins.
 - `kernel_svm.py` - Kernel SVM solving the dual quadratic program with SLSQP, supporting linear, RBF and polynomial kernels, and identifying the support vectors.
 
+### Feedforward Networks (FFN)
+
+- `ffn_binary.py` - Feedforward network for binary classification with one hidden layer of sigmoid units and a sigmoid output, minimizing the logistic loss. Weights are initialized with Xavier's method. Training uses backpropagation (explicit forward and backward passes) with full-batch gradient descent or mini-batch stochastic gradient descent, and predicts the positive class when `p >= 0.5`.
+- `ffn_multiclass.py` - Feedforward network for multiclass classification with two hidden layers of ReLU units and a softmax output, minimizing the cross-entropy loss. Hidden layers are initialized with He's method and the output layer with Xavier's method. Training uses backpropagation with full-batch gradient descent or mini-batch stochastic gradient descent, and predicts the class with the highest probability.
+
+Both networks update the parameters by hand-written backpropagation, with no automatic differentiation. Training runs for a fixed number of epochs. The loss on the full training set is logged after every epoch, and progress is printed every 1000 epochs. When `--batch-size` is smaller than the number of training instances, the data is reshuffled each epoch and processed in mini-batches. Otherwise full-batch gradient descent is used.
+
 ### Boosting Methods (AdaBoost and GBDT)
 
 - `adaboost.py` - AdaBoost with classification trees as base learners, reweighting instances each round by bootstrap resampling and combining learners by their coefficients.
@@ -47,8 +54,8 @@ Each algorithm is implemented from scratch with NumPy and SciPy and exposed as a
 
 ### Shared Modules
 
-- `utility_functions.py` - Shared utilities: evaluation measures (accuracy, MSE), activation functions (sigmoid, softmax, relu), loss functions (logistic, cross-entropy) and one-hot encoding.
-- `plot_functions.py` - Shared plotting: training curves and 2D model visualizations for binary classification (predicted regions, decision boundaries, margins, support vectors, Gaussian densities), multiclass classification and regression surfaces.
+- `utility_functions.py` - Shared utilities: evaluation measures (accuracy, MSE), activation functions (sigmoid, softmax, relu) and the derivatives used in backpropagation (sigmoid, relu), loss functions (logistic, cross-entropy, hinge) and one-hot encoding.
+- `plot_functions.py` - Shared plotting: training curves and 2D model visualizations for binary classification (predicted regions, decision boundaries, margins, support vectors, Gaussian densities, FFN predicted probabilities), multiclass classification (including FFN class regions) and regression surfaces.
 
 The files under Shared Modules are libraries imported by the algorithm scripts; all the others are entry points. `adaboost.py` additionally imports `ClassificationTree`, and the three gradient boosting scripts import `RegressionTree`, as their base learners.
 
@@ -64,7 +71,7 @@ Python 3.11+ with `numpy`, `scipy`, `scikit-learn` and `matplotlib`.
 pip install numpy scipy scikit-learn matplotlib
 ```
 
-PyTorch is not required: the `Data` package imports it only for deep learning.
+PyTorch is not required: the `Data` package imports it only for deep learning, and the feedforward networks in this directory are written in plain NumPy.
 
 ### Install the repository (once per environment)
 
@@ -106,6 +113,8 @@ python binomial_logistic_regression.py
 python multinomial_logistic_regression.py
 python linear_svm.py
 python kernel_svm.py
+python ffn_binary.py
+python ffn_multiclass.py
 python adaboost.py
 python gradient_boosting_binary.py
 python gradient_boosting_multiclass.py
@@ -130,14 +139,16 @@ Default dataset of each script:
 
 | Task | Loader | Scripts | Default |
 | --- | --- | --- | --- |
-| Binary classification | `load_binary_classification_data` | `adaboost.py`, `gradient_boosting_binary.py`, `kernel_svm.py` | `jigsaw` |
+| Binary classification | `load_binary_classification_data` | `adaboost.py`, `gradient_boosting_binary.py`, `kernel_svm.py`, `ffn_binary.py` | `jigsaw` |
 | Binary classification | `load_binary_classification_data` | all other binary classifiers | `gaussians` |
-| Multiclass classification | `load_multiclass_classification_data` | the multiclass scripts | `blobs` |
+| Multiclass classification | `load_multiclass_classification_data` | the multiclass scripts (including `ffn_multiclass.py`) | `blobs` |
 | Regression | `load_regression_data` | the regression scripts | `plane` |
 
-`jigsaw` is not linearly separable, which is why the scripts of kernel methods and ensemble methods default to it.
+`jigsaw` is not linearly separable, which is why the scripts of kernel methods, ensemble methods and neural networks default to it.
 
-Label conventions differ by algorithm: `perceptron.py`, `linear_svm.py`, `kernel_svm.py` and `adaboost.py` request signed labels in `{-1, 1}` (`signed_label=True` in `load_binary_classification_data`), while the remaining classifiers use `{0, 1}` or `{0, ..., k-1}`. The scripts set this flag themselves, so no manual conversion is needed.
+`ffn_binary.py` accepts `gaussians`, `jigsaw`, `circle` and `moons`. `ffn_multiclass.py` accepts `classification` (20D), `blobs` (2D) and `iris` (4D).
+
+Label conventions differ by algorithm: `perceptron.py`, `linear_svm.py`, `kernel_svm.py` and `adaboost.py` request signed labels in `{-1, 1}` (`signed_label=True` in `load_binary_classification_data`), while the remaining classifiers use `{0, 1}` or `{0, ..., k-1}`. This includes both feedforward networks, which use `{0, 1}` and `{0, ..., k-1}` respectively. The scripts set this flag themselves, so no manual conversion is needed.
 
 Model visualizations require 2D features, so they are skipped for `iris`, `classification` and `diabetes`. The nearest-neighbor, naive Bayes and classification tree plots additionally require exactly two classes.
 
@@ -150,9 +161,9 @@ Iterative methods:
 | Option | Scripts | Default | Meaning |
 | --- | --- | --- | --- |
 | `--num-iterations` | linear regression, logistic regressions | `10000` (GD) / `100` (BFGS) | Iteration budget |
-| `--num-epochs` | perceptron, linear SVM | `100` | Number of passes over the training data |
-| `--learning-rate` | linear regression, perceptron, logistic regressions, linear SVM | `0.1` (linear regression, perceptron), `0.01` (logistic regressions, linear SVM) | Step size for gradient descent |
-| `--convergence-threshold` | linear regression, perceptron, logistic regressions, linear SVM, AdaBoost, gradient boosting | `None` | Stop when the loss change drops below this value (the training error rate for the perceptron and AdaBoost); run the full budget when omitted |
+| `--num-epochs` | perceptron, linear SVM, FFNs | `100` (perceptron, linear SVM), `10000` (FFNs) | Number of passes over the training data |
+| `--learning-rate` | linear regression, perceptron, logistic regressions, linear SVM, FFNs | `0.1` (linear regression, perceptron, binary FFN), `0.01` (logistic regressions, linear SVM, multiclass FFN) | Step size for gradient descent |
+| `--convergence-threshold` | linear regression, perceptron, logistic regressions, linear SVM, AdaBoost, gradient boosting | `None` | Stop when the loss change drops below this value (the training error rate for the perceptron and AdaBoost); run the full budget when omitted. Not available for the FFNs, which always run all epochs |
 | `--algorithm` | linear regression, logistic regressions | `gd` | `gd` \| `ne` for linear regression, `gd` \| `bfgs` for the logistic regressions |
 
 Instance-based, generative and kernel methods:
@@ -166,6 +177,16 @@ Instance-based, generative and kernel methods:
 | `--degree`, `--coef0` | kernel SVM | `3`, `1.0` | Polynomial kernel degree and independent term |
 
 `gaussian_naive_bayes.py` takes only `--data`, since its maximum likelihood estimates are closed-form.
+
+Feedforward networks:
+
+| Option | Script | Default | Meaning |
+| --- | --- | --- | --- |
+| `--hidden-size` | `ffn_binary.py` | `4` | Number of units in the hidden layer |
+| `--hidden1-size`, `--hidden2-size` | `ffn_multiclass.py` | `6`, `6` | Number of units in the first and second hidden layers |
+| `--batch-size` | both FFNs | `None` | Mini-batch size for SGD; full-batch GD is used when omitted or when it is not smaller than the number of training instances |
+
+`--num-epochs` and `--learning-rate` are described in the table of iterative methods above.
 
 Tree and ensemble methods:
 
@@ -184,6 +205,8 @@ python perceptron.py --data gaussians --num-epochs 20 --convergence-threshold 0.
 python k_nearest_neighbor.py --data moons --num-neighbors 5
 python binomial_logistic_regression.py --data circle --algorithm bfgs
 python kernel_svm.py --data jigsaw --kernel poly --degree 2 --C 10
+python ffn_binary.py --data moons --hidden-size 8 --learning-rate 0.5
+python ffn_multiclass.py --data iris --hidden1-size 8 --hidden2-size 8 --batch-size 16
 python adaboost.py --data moons --num-learners 200 --max-tree-depth 1
 python gradient_boosting_regressor.py --data plane --shrinkage 0.05 --num-learners 300
 ```
@@ -196,13 +219,13 @@ All figures are saved to `./plot` (created automatically, re-runs overwrite prev
 
 | Figure | Produced by | Content |
 | --- | --- | --- |
-| `*_training_curve.png` | linear regression (GD only), perceptron, logistic regressions, linear SVM, AdaBoost, the three gradient boosting scripts | The diagnostic against iterations, epochs or boosting rounds: MSE, training error rate, logistic loss, cross-entropy loss or regularized hinge loss. The x axis is logarithmic except for the ensembles |
+| `*_training_curve.png` | linear regression (GD only), perceptron, logistic regressions, linear SVM, FFNs, AdaBoost, the three gradient boosting scripts | The diagnostic against iterations, epochs or boosting rounds: MSE, training error rate, logistic loss, cross-entropy loss or regularized hinge loss. The x axis is logarithmic except for the ensembles |
 | `*_model.png` | every script, when the data is 2D | The fitted model over the padded data range, together with the training instances |
 
 Three visualization styles are shared by all models:
 
-- **Binary classification** - predicted regions as filled contours, drawn either as two label regions or as four probability bins with the `p = 0.5` boundary, plus positive and negative instances. Individual models overlay their own details: the separating hyperplane (perceptron), hyperplane and margins (linear SVM), the `f(x) = 0` and `f(x) = ±1` contours with circled support vectors (kernel SVM), and the learned per-class Gaussian densities (naive Bayes).
-- **Multiclass classification** - predicted class regions as a filled mesh sharing one discrete colour scale with the instances.
+- **Binary classification** - predicted regions as filled contours, drawn either as two label regions or as four probability bins with the `p = 0.5` boundary, plus positive and negative instances. Individual models overlay their own details: the separating hyperplane (perceptron), hyperplane and margins (linear SVM), the `f(x) = 0` and `f(x) = ±1` contours with circled support vectors (kernel SVM), and the learned per-class Gaussian densities (naive Bayes). The binary FFN shows its predicted probability bins and the `p = 0.5` decision boundary.
+- **Multiclass classification** - predicted class regions as a filled mesh sharing one discrete colour scale with the instances (used by the multiclass FFN, among others).
 - **Regression** - the prediction surface as filled contours with contour lines, optionally labelled with their values, and the instances grayscaled by their true values.
 
 On a headless machine, set a non-interactive backend so that `plt.show()` does not block:
@@ -221,7 +244,7 @@ $env:MPLBACKEND = "Agg"; python classification_tree.py
 
 Each script prints its evaluation measure on both the training and the test set, computed in `utility_functions`:
 
-- **Classification** - accuracy from `calculate_accuracy`, the fraction of correctly predicted labels
-- **Regression** - mean squared error from `calculate_mse`
+- **Classification** - accuracy from `evaluate_accuracy`, the fraction of correctly predicted labels
+- **Regression** - mean squared error from `evaluate_mse`
 
-The scripts with stochastic training (`perceptron.py`, `linear_svm.py`, `adaboost.py`) fix `MODEL_SEED = 64` after the data is loaded. The train/test splits are fixed by `DATA_SEED = 32` inside the `Data` package, so repeated runs are reproducible. The remaining models are deterministic given the data.
+The scripts with stochastic training (`perceptron.py`, `linear_svm.py`, `adaboost.py`, `ffn_binary.py`, `ffn_multiclass.py`) fix `MODEL_SEED = 64`. The perceptron, linear SVM and AdaBoost set it after the data is loaded. The two FFNs set it at the start of `train()`, where it seeds both the weight initialization and the per-epoch shuffling of mini-batches. The train/test splits are fixed by `DATA_SEED = 32` inside the `Data` package, so repeated runs are reproducible. The remaining models are deterministic given the data.

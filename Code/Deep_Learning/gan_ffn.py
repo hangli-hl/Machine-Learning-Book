@@ -429,7 +429,7 @@ if __name__ == "__main__":
         optimizer_discriminator,
         device,
     )
-    print(f"Generated images saved to {pf.GEN_DIR}")
+    print(f"Generated images saved to {pf.PLOT_DIR}")
 
     # Plot training loss curves -> ./plot/gan_ffn_training_curve.png
     pf.plot_training_curve(

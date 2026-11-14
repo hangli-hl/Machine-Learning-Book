@@ -74,6 +74,53 @@ def sigmoid(z):
     return 1.0 / (1.0 + np.exp(-z_clipped))
 
 
+def sigmoid_derivative(a):
+    """
+    Calculate the derivative of the sigmoid function given its output.
+
+    Given a = σ(z), the derivative is: σ'(z) = a * (1 - a)
+
+    Args:
+        a: sigmoid activations (outputs of sigmoid function), a float or array
+
+    Returns:
+        derivative: dσ/dz evaluated at the points where σ(z) = a, a float or array
+    """
+    return a * (1 - a)
+
+
+def relu(z):
+    """
+    Compute the ReLU activation function.
+
+    ReLU function: relu(z) = max(0, z)
+
+    Args:
+        z: input of any shape
+
+    Returns:
+        output: ReLU activation, same shape as z
+    """
+    return np.maximum(0, z)
+
+
+def relu_derivative(a):
+    """
+    Compute the derivative of ReLU function given its output.
+
+    Given a = relu(z), the derivative is: 1 if a > 0, else 0.
+    Note: since relu(z) > 0 iff z > 0, this is equivalent to
+    checking the sign of the pre-activation.
+
+    Args:
+        a: ReLU activations (outputs of ReLU function), a float or array
+
+    Returns:
+        derivative: gradient, same shape as a
+    """
+    return np.where(a > 0, 1, 0).astype(float)
+
+
 def softmax(z):
     """
     Compute the softmax function.
@@ -95,6 +142,11 @@ def softmax(z):
     return exp_z / np.sum(exp_z, axis=1, keepdims=True)
 
 
+##############################################################################
+#                         LOSS FUNCTIONS
+##############################################################################
+
+
 def hinge(z):
     """
     Compute the hinge function.
@@ -110,11 +162,6 @@ def hinge(z):
         hinge function value(s), same shape as input
     """
     return np.maximum(0.0, 1.0 - z)
-
-
-##############################################################################
-#                         LOSS FUNCTIONS
-##############################################################################
 
 
 def logistic_loss(labels, probs):
