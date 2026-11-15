@@ -511,9 +511,7 @@ if __name__ == "__main__":
     pf.plot_training_curve(loss_log, MODEL_NAME, y_label="VAE loss per image")
 
     # Extract latent means and labels
-    means, labels = extract_vae_latent_representations(
-        model, training_loader, device
-    )
+    means, labels = extract_vae_latent_representations(model, training_loader, device)
 
     # Plot latent space using t-SNE -> ./plot/vae_ffn_latent_space.png
     pf.plot_vae_latent_space(means, labels, model_name=MODEL_NAME)

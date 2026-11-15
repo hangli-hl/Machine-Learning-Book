@@ -23,6 +23,7 @@ This directory contains code implementations of the algorithms in the book *Mach
 - Logistic Regression
 - Support Vector Machines (SVM)
 - Boosting Methods
+- Feedforward Network (FFN)
 
 ### Unsupervised Learning
 
@@ -96,6 +97,7 @@ See [Data/README.md](./Data/README.md) for the available datasets, loader functi
 - 逻辑斯谛回归
 - 支持向量机（SVM）
 - 提升方法
+- 前馈神经网络（FFN）
 
 ### 无监督学习
 

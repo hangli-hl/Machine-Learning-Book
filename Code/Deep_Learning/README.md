@@ -66,6 +66,7 @@ All scripts import their data from the `Data` package at the repository root. Fr
 
 ```bash
 python -m pip install -e .
+pip install -e ".[deep]"
 ```
 
 Without it, the scripts fail with `ModuleNotFoundError: No module named 'Data'`. See [Getting Started](../README.md#getting-started) in the root README for details.

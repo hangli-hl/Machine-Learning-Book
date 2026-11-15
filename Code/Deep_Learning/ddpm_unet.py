@@ -306,6 +306,7 @@ def generate_samples_ddpm(model, diffusion, num_gen_images, epoch, num_epochs):
             show=(current_epoch == num_epochs),
         )
 
+
 ##############################################################################
 #                               MAIN PROGRAM
 ##############################################################################

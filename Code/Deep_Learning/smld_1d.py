@@ -32,7 +32,7 @@ DEFAULT_BATCH_SIZE = 256
 # Default number of hidden units in the UNet1D
 DEFAULT_HIDDEN_SIZE = 128
 # Default number of noise levels in the geometric schedule
-DEFAULT_NUM_NOISE_LEVELS = 10
+DEFAULT_NUM_NOISE_LEVELS = 20
 # Default smallest noise level
 DEFAULT_SIGMA_MIN = 0.01
 # Default largest noise level
@@ -40,7 +40,7 @@ DEFAULT_SIGMA_MAX = 10.0
 # Default number of Langevin corrector steps per noise level
 DEFAULT_NUM_LANGEVIN_STEPS = 10
 # Default target signal-to-noise ratio for the Langevin corrector step size
-DEFAULT_TARGET_SNR = 0.10
+DEFAULT_TARGET_SNR = 0.01
 # Default number of samples to generate
 DEFAULT_NUM_GEN_SAMPLES = 3000
 

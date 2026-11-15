@@ -38,19 +38,19 @@ Each algorithm is implemented from scratch with NumPy and SciPy (the feedforward
 - `linear_svm.py` - Linear SVM trained by stochastic gradient descent on the L2-regularized hinge loss, visualized with its decision boundary and margins.
 - `kernel_svm.py` - Kernel SVM solving the dual quadratic program with SLSQP, supporting linear, RBF and polynomial kernels, and identifying the support vectors.
 
-### Feedforward Networks (FFN)
-
-- `feedforward_network_binary.py` - Feedforward network for binary classification with one hidden layer of sigmoid units and a sigmoid output, minimizing the logistic loss. Weights are initialized with Xavier's method. Training uses backpropagation (explicit forward and backward passes) with full-batch gradient descent or mini-batch stochastic gradient descent, and predicts the positive class when `p >= 0.5`.
-- `feedforward_network_multiclass.py` - Feedforward network for multiclass classification with two hidden layers of ReLU units and a softmax output, minimizing the cross-entropy loss. Hidden layers are initialized with He's method and the output layer with Xavier's method. Training uses backpropagation with full-batch gradient descent or mini-batch stochastic gradient descent, and predicts the class with the highest probability.
-
-Both networks update the parameters by hand-written backpropagation, with no automatic differentiation. Training runs for a fixed number of epochs. The loss on the full training set is logged after every epoch, and progress is printed every 1000 epochs. When `--batch-size` is smaller than the number of training instances, the data is reshuffled each epoch and processed in mini-batches. Otherwise full-batch gradient descent is used.
-
 ### Boosting Methods (AdaBoost and GBDT)
 
 - `adaboost.py` - AdaBoost with classification trees as base learners, reweighting instances each round by bootstrap resampling and combining learners by their coefficients.
 - `gradient_boosting_binary.py` - Gradient boosting binary classifier fitting regression trees to the pseudo-residuals of the logistic loss, with shrinkage and a sigmoid output.
 - `gradient_boosting_multiclass.py` - Gradient boosting multiclass classifier maintaining one tree ensemble per class and fitting the pseudo-residuals of the cross-entropy loss, with a softmax output.
 - `gradient_boosting_regressor.py` - Gradient boosting regressor fitting regression trees to the residuals of the squared error loss, with shrinkage and an initial prediction set to the mean.
+
+### Feedforward Networks (FFN)
+
+- `feedforward_network_binary.py` - Feedforward network for binary classification with one hidden layer of sigmoid units and a sigmoid output, minimizing the logistic loss. Weights are initialized with Xavier's method. Training uses backpropagation (explicit forward and backward passes) with full-batch gradient descent or mini-batch stochastic gradient descent, and predicts the positive class when `p >= 0.5`.
+- `feedforward_network_multiclass.py` - Feedforward network for multiclass classification with two hidden layers of ReLU units and a softmax output, minimizing the cross-entropy loss. Hidden layers are initialized with He's method and the output layer with Xavier's method. Training uses backpropagation with full-batch gradient descent or mini-batch stochastic gradient descent, and predicts the class with the highest probability.
+
+Both networks update the parameters by hand-written backpropagation, with no automatic differentiation.
 
 ### Shared Modules
 
@@ -113,12 +113,12 @@ python binomial_logistic_regression.py
 python multinomial_logistic_regression.py
 python linear_svm.py
 python kernel_svm.py
-python feedforward_network_binary.py
-python feedforward_network_multiclass.py
 python adaboost.py
 python gradient_boosting_binary.py
 python gradient_boosting_multiclass.py
 python gradient_boosting_regressor.py
+python feedforward_network_binary.py
+python feedforward_network_multiclass.py
 ```
 
 Each script loads a dataset, trains while printing progress, saves its figures to `./plot`, and reports accuracy (classification) or mean squared error (regression) on both the training and the test set.
