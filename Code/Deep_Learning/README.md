@@ -14,7 +14,7 @@ All models are built with PyTorch. Datasets are obtained through the shared `Dat
 
 - `cnn.py` - PyTorch convolutional network with two convolution-pooling blocks and two fully connected layers for MNIST digit classification.
 
-### Transformer
+### Vision Transformer (ViT)
 
 - `vit.py` - Vision Transformer with convolutional patch embedding, a learnable CLS token, learnable positional embeddings and four pre-norm encoder blocks for MNIST classification.
 

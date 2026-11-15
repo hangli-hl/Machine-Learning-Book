@@ -57,7 +57,7 @@ pip install -e ".[deep]"    # deep learning: Deep_Learning/; include torch, torc
 python Supervised_Learning/gradient_boosting_binary.py
 ```
 
-Results are saved to `./plot` (and `./gen` for generative models) in the directory from which the command is launched.
+Results are saved to `./plot` in the directory from which the command is launched.
 
 ## Data
 
@@ -130,7 +130,7 @@ pip install -e ".[deep]"    # 深度学习：Deep_Learning/；包含torch、torc
 python Supervised_Learning/gradient_boosting_binary.py
 ```
 
-结果保存到启动命令所在目录的 `./plot`（生成模型还有 `./gen`）。
+结果保存到启动命令所在目录的 `./plot`。
 
 ## 数据
 

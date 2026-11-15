@@ -543,7 +543,7 @@ if __name__ == "__main__":
     pf.plot_training_curve(loss_log, MODEL_NAME, y_label="VAE loss per image")
 
     # Extract latent means and labels
-    means, labels = uf.extract_vae_latent_representations(
+    means, labels = extract_vae_latent_representations(
         model, training_loader, device
     )
 
