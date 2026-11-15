@@ -427,7 +427,7 @@ if __name__ == "__main__":
     pf.plot_training_curve(loss_log, MODEL_NAME, y_label="MSE loss")
 
     # Number of trajectories to compute
-    num_trajs = min(25, num_samples)
+    num_trajs = min(50, num_samples)
 
     # Plot the forward diffusion (noise-adding) process
     print("Plotting forward diffusion process")
@@ -449,8 +449,9 @@ if __name__ == "__main__":
         title=f"{MODEL_NAME} Reverse: Noise to Data",
         file_name=pf.default_file_name(MODEL_NAME, "traj_reverse"),
         color="blue",
-        xlabel="reverse time step",
+        xlabel="time step t (from T to 0)",
         num_trajs=num_trajs,
+        reverse=True,
     )
 
     # Sample from the learned model

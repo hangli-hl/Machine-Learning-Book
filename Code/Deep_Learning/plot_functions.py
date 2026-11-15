@@ -281,6 +281,7 @@ def plot_1d_trajs(
     color="green",
     xlabel="step",
     num_trajs=25,
+    reverse=False,
 ):
     """
     Plot a subset of 1D trajectories, one figure per call. The caller decides
@@ -295,9 +296,18 @@ def plot_1d_trajs(
         color: colour of the trajectory lines
         xlabel: label of the horizontal axis
         num_trajs: number of trajectories to draw, a positive integer
+        reverse: if True, the trajectory is a reverse (denoising) process and
+            the horizontal axis shows t = T, T-1, ..., 0 from left to right;
+            if False, the axis shows 0, 1, ..., T
     """
-
     traj = _to_numpy(traj)
+
+    # Horizontal axis: snapshot k of a reverse process is x_{T-k}
+    num_steps = traj.shape[0] - 1
+    if reverse:
+        times = np.arange(num_steps, -1, -1)
+    else:
+        times = np.arange(num_steps + 1)
 
     # Pick evenly spaced trajectories instead of a hard-coded subset
     num_available = traj.shape[1]
@@ -306,7 +316,11 @@ def plot_1d_trajs(
 
     fig, ax = plt.subplots(figsize=(12, 6))
     for index in indices:
-        ax.plot(traj[:, index, 0], color=color, alpha=0.35, linewidth=0.8)
+        ax.plot(times, traj[:, index, 0], color=color, alpha=0.35, linewidth=0.8)
+
+    # Keep the first snapshot (pure noise) on the left, with t decreasing to 0
+    if reverse:
+        ax.invert_xaxis()
 
     ax.set_xlabel(xlabel)
     ax.set_ylabel("x value")
@@ -331,7 +345,6 @@ def plot_1d_score_function(
         file_name: name of the saved file, without directory and extension
         sigma: optional noise level shown in the legend
     """
-
     label = (
         f"learned score (sigma = {sigma:.3f})" if sigma is not None else "learned score"
     )
@@ -359,7 +372,6 @@ def plot_1d_velocity_field(field, x_range, title, file_name):
         title: title of the plotted velocity field
         file_name: name of the saved file, without directory and extension
     """
-
     fig, ax = plt.subplots(figsize=(10, 6))
     vmax = float(np.abs(field).max())
     image = ax.imshow(
@@ -394,7 +406,6 @@ def plot_1d_gen_samples(
         gmm_pdf: mapping a grid to the value of GMM density function
         grid_range: (min, max) range of the evaluation grid for gmm_pdf
     """
-
     data = _to_numpy(data).reshape(-1)
     samples = _to_numpy(samples).reshape(-1)
 
@@ -450,7 +461,6 @@ def plot_generated_images(
         show: whether to display the grid, False when called once per epoch
             inside a training loop
     """
-
     images = _to_numpy(gen_images)
 
     # Rescale from value_range to the display range [0, 1]
@@ -509,7 +519,6 @@ def plot_generation_progress(
         value_range: (low, high) value range of gen_images, rescaled to [0, 1] for display
         show: whether to display the grid
     """
-
     num_snapshots = len(trajs)
     num_rows = max(1, min(num_rows, len(trajs[0])))
     num_cols = max(1, min(num_cols, num_snapshots))

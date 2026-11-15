@@ -358,7 +358,7 @@ if __name__ == "__main__":
 
     # Plot training loss of ffn binary
     pf.plot_training_curve(
-        model.loss_log, "FFN-Binary", "Logistic Loss"
+        model.loss_log, "Feedforward Network Binary Classifier", "Logistic Loss"
     )
 
     # Evaluate on training set

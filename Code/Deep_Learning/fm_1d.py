@@ -367,8 +367,8 @@ def compute_path_trajs(flow_matching, data, num_trajs):
 
     Returns:
         trajs: stacked trajectories, shape (num_steps + 1, num_trajs, 1)
-            Row 0 is t = 1 (data, plus sigma_min * noise) and the last
-            row is t = 0 (noise)
+            Row 0 is t = 0 (noise) and the last row is t = 1 (data,
+            plus sigma_min * noise)
     """
     num_steps = flow_matching.num_steps
     device = flow_matching.device
@@ -377,8 +377,8 @@ def compute_path_trajs(flow_matching, data, num_trajs):
     x_0 = torch.randn_like(x_1)
     traj_points = []
 
-    # Interpolate deterministically from data (t = 1) to noise (t = 0)
-    for i in range(num_steps, -1, -1):
+    # Interpolate deterministically from noise (t = 0) to data (t = 1)
+    for i in range(num_steps + 1):
         t_batch = torch.full((x_1.size(0),), i / num_steps, device=device)
         x_t, _ = flow_matching.compute_location_and_velocity(x_1, t_batch, x_0)
         traj_points.append(x_t.cpu().clone())
@@ -424,12 +424,17 @@ def invert_ode_trajs(model, flow_matching, data, num_trajs):
 
     Returns:
         trajs: stacked trajectories, shape (num_steps + 1, num_trajs, 1)
-            Row 0 is t = 1 (data) and the last row is t = 0 (noise)
+            Row 0 is t = 0 (latent noise) and the last row is t = 1 (data).
+            The ODE is integrated from t = 1 to t = 0, then flipped for display.
     """
     device = flow_matching.device
 
     x_1 = data[:num_trajs].to(device)
     _, trajs = flow_matching.invert_ode(model, x_1, return_traj=True)
+
+    # Integration runs from t = 1 to t = 0. Flip the time axis for display,
+    # so that row 0 is t = 0 (noise) and the last row is t = 1 (data)
+    trajs = torch.flip(trajs, dims=[0])
     return trajs
 
 
@@ -599,7 +604,7 @@ if __name__ == "__main__":
     pf.plot_training_curve(loss_log, MODEL_NAME, y_label="MSE loss")
 
     # Number of trajectories to compute
-    num_trajs = min(25, num_samples)
+    num_trajs = min(50, num_samples)
 
     # Plot the conditional path (no model) from data to noise
     print("Plotting conditional path (no model) from data to noise")
@@ -609,7 +614,7 @@ if __name__ == "__main__":
         title=f"{MODEL_NAME} Conditional Path: From Data to Noise",
         file_name=pf.default_file_name(MODEL_NAME, "traj_path"),
         color="green",
-        xlabel="integration step (t: 1 to 0)",
+        xlabel="integration step (t: 0 to 1)",
         num_trajs=num_trajs,
     )
 
@@ -626,14 +631,14 @@ if __name__ == "__main__":
     )
 
     # Plot the inverse ODE from data to noise
-    print("Plotting inverse ODE from data to noise")
+    print("Plotting inverse ODE from data to noise, shown in forward time")
     inverse_ode_trajs = invert_ode_trajs(model, flow_matching, data, num_trajs)
     pf.plot_1d_trajs(
         inverse_ode_trajs,
         title=f"{MODEL_NAME} Inverse ODE: From Data to Noise",
         file_name=pf.default_file_name(MODEL_NAME, "traj_invert"),
         color="blue",
-        xlabel="integration step (t: 1 to 0)",
+        xlabel="integration step (t: 0 to 1)",
         num_trajs=num_trajs,
     )
 

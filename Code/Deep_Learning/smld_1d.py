@@ -572,7 +572,7 @@ if __name__ == "__main__":
     )
 
     # Number of trajectories to compute
-    num_trajs = min(25, num_samples)
+    num_trajs = min(50, num_samples)
 
     # Plot the forward diffusion (noise-adding) process
     print("Plotting forward noise-adding process")
@@ -596,8 +596,9 @@ if __name__ == "__main__":
         title=f"{MODEL_NAME} Reverse: Noise to Data",
         file_name=pf.default_file_name(MODEL_NAME, "traj_reverse"),
         color="blue",
-        xlabel="predictor-corrector step (sigma max to sigma min)",
+        xlabel="remaining predictor-corrector steps (sigma max to sigma min)",
         num_trajs=num_trajs,
+        reverse=True,
     )
 
     # Learned score vs analytic score
