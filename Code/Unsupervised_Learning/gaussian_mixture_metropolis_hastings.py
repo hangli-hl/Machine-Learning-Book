@@ -16,9 +16,9 @@ import plot_functions as pf
 # Random seed for reproducibility
 MODEL_SEED = 64
 # Default number of iterations for the Metropolis-Hastings sampler
-DEFAULT_NUM_ITERATIONS = 20000
+DEFAULT_NUM_ITERATIONS = 5000
 # Default number of initial iterations to discard (burn-in)
-DEFAULT_BURN_IN = 10000
+DEFAULT_BURN_IN = 2000
 # Small positive number to avoid division by zero or log(0)
 EPS = 1e-6
 # Number of iterations between two progress messages during training

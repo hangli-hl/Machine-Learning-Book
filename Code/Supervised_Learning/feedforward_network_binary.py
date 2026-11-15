@@ -373,4 +373,4 @@ if __name__ == "__main__":
 
     # Visualize the ffn binary model (only for 2D data)
     if num_features == 2:
-        pf.visualize_ffn_binary(training_instances, training_labels, model)
+        pf.visualize_feedforward_network_binary(training_instances, training_labels, model)

@@ -17,7 +17,7 @@ MODEL_SEED = 64
 # Default number of iterations for the Gibbs sampler
 DEFAULT_NUM_ITERATIONS = 5000
 # Default number of initial iterations to discard (burn-in)
-DEFAULT_BURN_IN = 1000
+DEFAULT_BURN_IN = 2000
 # Lower bound for the mixing coefficients inside logarithms
 EPS = 1e-12
 # Number of iterations between two progress messages during training

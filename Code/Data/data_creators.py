@@ -17,7 +17,7 @@
 # torch is imported inside the 1D Gaussian mixture functions only,
 # so the NumPy-based creators work without PyTorch installed.
 import numpy as np
-import numpy as np
+
 
 ##############################################################################
 #                           HELPER FUNCTIONS
@@ -184,26 +184,40 @@ def create_gaussians_clustering_data(seed):
 ##############################################################################
 
 
+def _gaussian_mixture_1d_params(device="cpu"):
+    """
+    Parameters of the 1D mixture (30% at -5, 70% at +5, std 1).
+
+    Returns:
+        tuple: (weights, means, stds), float32 tensors of shape (2,) on device
+    """
+    import torch
+
+    def as_tensor(values):
+        return torch.tensor(values, dtype=torch.float32, device=device)
+
+    return as_tensor([0.3, 0.7]), as_tensor([-5.0, 5.0]), as_tensor([1.0, 1.0])
+
+
 def create_gaussian_mixture_1d_data(num_samples, seed, device="cpu"):
     """
     Sample from the 1D Gaussian mixture using a local torch.Generator
     (the global torch RNG is not touched).
 
     Returns:
-        data: tensor of shape (num_samples, 1)
+        data: float32 tensor of shape (num_samples, 1) on device
     """
     import torch
 
     generator = torch.Generator(device=device).manual_seed(seed)
-
-    weights = torch.tensor([0.3, 0.7], device=device)
-    means = torch.tensor([-5.0, 5.0], device=device)
-    stds = torch.tensor([1.0, 1.0], device=device)
+    weights, means, stds = _gaussian_mixture_1d_params(device)
 
     components = torch.multinomial(
         weights, num_samples, replacement=True, generator=generator
     )
-    noise = torch.randn(num_samples, device=device, generator=generator)
+    noise = torch.randn(
+        num_samples, dtype=torch.float32, device=device, generator=generator
+    )
     data = means[components] + stds[components] * noise
     return data.reshape(num_samples, 1)
 
@@ -215,25 +229,27 @@ def gaussian_mixture_1d_distribution(device="cpu"):
     create_gaussian_mixture_1d_data.
 
     Returns:
-        distribution: a torch.distributions.MixtureSameFamily
+        distribution: a torch.distributions.MixtureSameFamily (float32)
     """
     import torch
 
+    weights, means, stds = _gaussian_mixture_1d_params(device)
     return torch.distributions.MixtureSameFamily(
-        torch.distributions.Categorical(torch.tensor([0.3, 0.7], device=device)),
-        torch.distributions.Normal(
-            torch.tensor([-5.0, 5.0], device=device),
-            torch.tensor([1.0, 1.0], device=device),
-        ),
+        torch.distributions.Categorical(weights),
+        torch.distributions.Normal(means, stds),
     )
 
 
 def gaussian_mixture_1d_pdf(x):
     """
-    Analytic density of the 1D mixture (numpy in, numpy out; for plotting).
+    Analytic density of the 1D mixture (for plotting).
 
     Args:
-        x: evaluation points, numpy array of any shape
+        x: evaluation points, numpy array (or tensor) of any shape;
+            converted to float32 internally
+
+    Returns:
+        pdf: float32 numpy array with the same shape as x
     """
     import torch
 
@@ -250,11 +266,11 @@ def gaussian_mixture_1d_score(x):
         x: torch tensor of shape (num_points, 1)
 
     Returns:
-        score: torch tensor of shape (num_points, 1)
+        score: float32 torch tensor of shape (num_points, 1), no autograd graph
     """
     import torch
 
-    points = x.detach().reshape(-1).requires_grad_(True)
+    points = x.detach().to(torch.float32).reshape(-1).requires_grad_(True)
     log_prob = (
         gaussian_mixture_1d_distribution(device=points.device).log_prob(points).sum()
     )
