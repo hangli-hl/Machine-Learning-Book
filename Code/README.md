@@ -23,7 +23,7 @@ This directory contains code implementations of the algorithms in the book *Mach
 - Logistic Regression
 - Support Vector Machines (SVM)
 - Boosting Methods
-- Feedforward Network (FFN)
+- Feedforward Networks (FFN)
 
 ### Unsupervised Learning
 
@@ -33,7 +33,7 @@ This directory contains code implementations of the algorithms in the book *Mach
 
 ### Deep Learning
 
-- Feedforward Neural Networks (FFN)
+- Feedforward Networks (FFN)
 - Convolutional Neural Networks (CNN)
 - Vision Transformer (ViT)
 - Generative Adversarial Networks (GAN)
@@ -48,14 +48,16 @@ In this repository, the **repository root** is the directory that contains this 
 **1. Install this repository in editable mode (once per environment)** (Python 3.11+). Run one of the following in the repository root:
 
 ```bash
-pip install -e .            # traditional machine learning: Supervised_Learning/, Unsupervised_Learning/; include numpy, scikit-learn, etc
-pip install -e ".[deep]"    # deep learning: Deep_Learning/; include torch, torchvision
+pip install -e .            # traditional machine learning: Supervised_Learning, Unsupervised_Learning; includes numpy, scipy, scikit-learn, matplotlib
+pip install -e ".[deep]"    # deep learning: Deep_Learning/; includes numpy, scipy, scikit-learn, matplotlib, torch, and torchvision
 ```
 
 **2. Run any script directly**, from the repository root or from inside its own directory, for example:
 
 ```bash
 python Supervised_Learning/gradient_boosting_binary.py
+
+python Deep_Learning/ddpm_1d.py
 ```
 
 Results are saved to `./plot` in the directory from which the command is launched.
@@ -122,14 +124,16 @@ See [Data/README.md](./Data/README.md) for the available datasets, loader functi
 **1. 以可编辑模式安装本仓库（每个环境只需一次）**（Python 3.11+）。在仓库根目录执行其中一条：
 
 ```bash
-pip install -e .            # 传统机器学习：Supervised_Learning/、Unsupervised_Learning/，包含numpy、scikit-learn等
-pip install -e ".[deep]"    # 深度学习：Deep_Learning/；包含torch、torchvision
+pip install -e .            # 传统机器学习：Supervised_Learning/、Unsupervised_Learning/，包含numpy、scipy、scikit-learn、matplotlib
+pip install -e ".[deep]"    # 深度学习：Deep_Learning/；包含numpy、scipy、scikit-learn、matplotlib、torch、torchvision
 ```
 
 **2. 直接运行任意脚本**，可以在仓库根目录，也可以进入脚本所在目录，例如：
 
 ```bash
 python Supervised_Learning/gradient_boosting_binary.py
+
+python Deep_Learning/ddpm_1d.py
 ```
 
 结果保存到启动命令所在目录的 `./plot`。

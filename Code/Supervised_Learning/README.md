@@ -67,10 +67,6 @@ Datasets are not created in this directory: they come from `Data/data_loaders.py
 
 Python 3.11+ with `numpy`, `scipy`, `scikit-learn` and `matplotlib`.
 
-```bash
-pip install numpy scipy scikit-learn matplotlib
-```
-
 PyTorch is not required: the `Data` package imports it only for deep learning, and the feedforward networks in this directory are written in plain NumPy.
 
 ### Install the repository (once per environment)
@@ -78,7 +74,7 @@ PyTorch is not required: the `Data` package imports it only for deep learning, a
 All scripts import their data from the `Data` package at the repository root. From the repository root, run:
 
 ```bash
-python -m pip install -e .
+pip install -e .
 ```
 
 Without it, the scripts fail with `ModuleNotFoundError: No module named 'Data'`. See [Getting Started](../README.md#getting-started) in the root README for details.
