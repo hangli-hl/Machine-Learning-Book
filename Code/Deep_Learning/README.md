@@ -6,7 +6,7 @@ All models are built with PyTorch. Datasets are obtained through the shared `Dat
 
 ## Contents
 
-### Feedforward Neural Network (FFN)
+### Feedforward Neural Networks (FFN)
 
 - `ffn.py` - PyTorch feedforward network with four ReLU hidden layers for MNIST digit classification, trained with Adam and cross-entropy loss.
 
