@@ -57,7 +57,7 @@ pip install -e ".[deep]"    # deep learning: Deep_Learning/; includes numpy, sci
 ```bash
 python Supervised_Learning/gradient_boosting_binary.py
 
-python Deep_Learning/ddpm_1d.py
+python Deep_Learning/ffn.py
 ```
 
 Results are saved to `./plot` in the directory from which the command is launched.
@@ -133,7 +133,7 @@ pip install -e ".[deep]"    # 深度学习：Deep_Learning/；包含numpy、scip
 ```bash
 python Supervised_Learning/gradient_boosting_binary.py
 
-python Deep_Learning/ddpm_1d.py
+python Deep_Learning/ffn.py
 ```
 
 结果保存到启动命令所在目录的 `./plot`。
